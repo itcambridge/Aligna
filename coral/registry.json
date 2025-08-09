@@ -1,0 +1,143 @@
+{
+  "agents": [
+    {
+      "agent_name": "job_analyzer",
+      "capabilities": ["job_analysis"],
+      "endpoint": "http://localhost:8000/adapters/job_analyzer/handle",
+      "description": "Analyzes job descriptions and extracts structured requirements using LangChain",
+      "version": "1.0.0",
+      "intents": [
+        "analyze_job",
+        "extract_requirements",
+        "job_summary"
+      ]
+    },
+    {
+      "agent_name": "cv_matcher",
+      "capabilities": ["cv_matching"],
+      "endpoint": "http://localhost:8000/adapters/cv_matcher/handle",
+      "description": "Matches CV content against job requirements using RAG and Qdrant",
+      "version": "1.0.0",
+      "intents": [
+        "match_requirements",
+        "find_evidence",
+        "calculate_match_score"
+      ]
+    },
+    {
+      "agent_name": "cv_writer",
+      "capabilities": ["cv_writing"],
+      "endpoint": "http://localhost:8000/adapters/cv_writer/handle",
+      "description": "Generates grounded CV sections using only retrieved evidence",
+      "version": "1.0.0",
+      "intents": [
+        "draft_cv",
+        "generate_sections",
+        "create_evidence_report"
+      ]
+    },
+    {
+      "agent_name": "linkedin_agent",
+      "capabilities": ["job_search"],
+      "endpoint": "http://localhost:8001/mcp/linkedin/handle",
+      "description": "Searches for jobs via LinkedIn MCP server",
+      "version": "1.0.0",
+      "intents": [
+        "search_jobs",
+        "get_job_description",
+        "fetch_job_details"
+      ]
+    },
+    {
+      "agent_name": "interface_agent",
+      "capabilities": ["interface"],
+      "endpoint": "http://localhost:8000/adapters/interface/handle",
+      "description": "Routes requests and coordinates workflow between agents",
+      "version": "1.0.0",
+      "intents": [
+        "generate_cv",
+        "coordinate_workflow",
+        "route_request"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "generate_cv_workflow",
+      "description": "Complete CV generation workflow",
+      "steps": [
+        {
+          "step": 1,
+          "agent": "interface_agent",
+          "intent": "route_request",
+          "description": "Route initial request and create thread"
+        },
+        {
+          "step": 2,
+          "agent": "linkedin_agent",
+          "intent": "get_job_description",
+          "description": "Fetch job description from LinkedIn"
+        },
+        {
+          "step": 3,
+          "agent": "job_analyzer",
+          "intent": "analyze_job",
+          "description": "Extract structured requirements from job description"
+        },
+        {
+          "step": 4,
+          "agent": "cv_matcher",
+          "intent": "match_requirements",
+          "description": "Match job requirements against CV content using RAG"
+        },
+        {
+          "step": 5,
+          "agent": "cv_writer",
+          "intent": "draft_cv",
+          "description": "Generate grounded CV using matched evidence"
+        },
+        {
+          "step": 6,
+          "agent": "interface_agent",
+          "intent": "return_result",
+          "description": "Return final CV and evidence report to user"
+        }
+      ]
+    }
+  ],
+  "message_types": {
+    "request": "Initial request from user or system",
+    "mention": "Direct mention of specific agent",
+    "response": "Response to a request or mention",
+    "result": "Final result or artifact",
+    "error": "Error message with details",
+    "system": "System-level message"
+  },
+  "intents": {
+    "generate_cv": {
+      "description": "Generate a complete CV for a job",
+      "required_payload": ["user_id", "job_title", "location"],
+      "optional_payload": ["cv_id", "company", "cv_file_path"]
+    },
+    "analyze_job": {
+      "description": "Analyze job description and extract requirements",
+      "required_payload": ["job_description"],
+      "optional_payload": ["job_title", "company"]
+    },
+    "match_requirements": {
+      "description": "Match job requirements against CV content",
+      "required_payload": ["user_id", "cv_id", "job_requirements"],
+      "optional_payload": ["top_k", "similarity_threshold"]
+    },
+    "draft_cv": {
+      "description": "Generate CV draft from matched evidence",
+      "required_payload": ["user_id", "cv_id", "job_requirements", "cv_matches"],
+      "optional_payload": ["contact_info", "template"]
+    },
+    "search_jobs": {
+      "description": "Search for jobs on LinkedIn",
+      "required_payload": ["job_title", "location"],
+      "optional_payload": ["company", "limit"]
+    }
+  }
+}
