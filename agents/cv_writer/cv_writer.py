@@ -108,20 +108,29 @@ Generate a tailored CV using ONLY the provided evidence.""")
             # Prepare evidence for the prompt
             cv_evidence = self._prepare_cv_evidence(cv_matches)
             
-            # Create the chain
-            chain = self.prompt | self.llm | self.parser
+            # Get response from LLM
+            formatted_prompt = self.prompt.format_messages(
+                job_requirements=job_requirements.dict(),
+                cv_evidence=cv_evidence,
+                contact_info=contact_info
+            )
+            formatted_prompt.append(("system", f"Format your response as JSON according to this schema:\n{self.parser.get_format_instructions()}"))
             
-            # Generate the CV
-            result = chain.invoke({
-                "job_requirements": job_requirements.dict(),
-                "cv_evidence": cv_evidence,
-                "contact_info": contact_info
-            })
+            response = self.llm.invoke(formatted_prompt)
+            
+            # Try to parse with Pydantic parser
+            try:
+                result = self.parser.parse(response.content)
+                logger.info(f"Successfully generated CV for user {user_id} with Pydantic parser")
+            except Exception as parse_error:
+                logger.warning(f"Pydantic parsing failed: {parse_error}, trying manual parsing")
+                # Fallback: manual parsing from text response
+                result = self._parse_text_cv_response(response.content, contact_info, cv_matches)
+                logger.info(f"Successfully generated CV for user {user_id} with manual parsing")
             
             # Add match evidence to the result
             result.match_evidence = cv_matches
             
-            logger.info(f"Successfully generated CV for user {user_id}")
             return result
             
         except Exception as e:
@@ -184,6 +193,110 @@ Generate a tailored CV using ONLY the provided evidence.""")
                 evidence_parts.append("No evidence available")
         
         return "\n".join(evidence_parts)
+    
+    def _parse_text_cv_response(self, text_response: str, contact_info: Dict[str, str], cv_matches: Dict[str, Any]) -> GeneratedCV:
+        """
+        Manually parse text CV response when JSON parsing fails.
+        
+        Args:
+            text_response: Raw text response from LLM
+            contact_info: Contact information
+            cv_matches: CV matches for evidence
+            
+        Returns:
+            Parsed GeneratedCV
+        """
+        try:
+            # Initialize sections
+            summary_content = ""
+            experience_content = ""
+            skills_content = ""
+            education_content = ""
+            
+            # Split response into lines and parse sections
+            lines = text_response.split('\n')
+            current_section = None
+            current_content = []
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # Identify section headers
+                if 'professional summary' in line.lower() or 'summary' in line.lower():
+                    if current_section and current_content:
+                        self._assign_section_content(current_section, '\n'.join(current_content), locals())
+                    current_section = 'summary'
+                    current_content = []
+                elif 'work experience' in line.lower() or 'experience' in line.lower():
+                    if current_section and current_content:
+                        self._assign_section_content(current_section, '\n'.join(current_content), locals())
+                    current_section = 'experience'
+                    current_content = []
+                elif 'skills' in line.lower():
+                    if current_section and current_content:
+                        self._assign_section_content(current_section, '\n'.join(current_content), locals())
+                    current_section = 'skills'
+                    current_content = []
+                elif 'education' in line.lower():
+                    if current_section and current_content:
+                        self._assign_section_content(current_section, '\n'.join(current_content), locals())
+                    current_section = 'education'
+                    current_content = []
+                elif not line.startswith('*') and not line.startswith('#') and current_section:
+                    # This is content for the current section
+                    current_content.append(line)
+            
+            # Handle the last section
+            if current_section and current_content:
+                self._assign_section_content(current_section, '\n'.join(current_content), locals())
+            
+            # If no sections were parsed, use the entire response as summary
+            if not summary_content and not experience_content and not skills_content and not education_content:
+                summary_content = text_response[:500] + "..." if len(text_response) > 500 else text_response
+            
+            logger.info("Successfully parsed text CV response manually")
+            return GeneratedCV(
+                contact_info=contact_info,
+                summary=CVSection(
+                    title="Professional Summary",
+                    content=summary_content or "Professional summary could not be extracted.",
+                    evidence=[]
+                ),
+                experience=CVSection(
+                    title="Work Experience",
+                    content=experience_content or "Work experience could not be extracted.",
+                    evidence=[]
+                ),
+                skills=CVSection(
+                    title="Skills",
+                    content=skills_content or "Skills could not be extracted.",
+                    evidence=[]
+                ),
+                education=CVSection(
+                    title="Education",
+                    content=education_content or "Education could not be extracted.",
+                    evidence=[]
+                ),
+                additional_sections=[],
+                match_evidence=cv_matches
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in manual CV parsing: {e}")
+            return self._create_fallback_cv(contact_info, cv_matches)
+    
+    def _assign_section_content(self, section: str, content: str, local_vars: dict):
+        """Helper method to assign content to section variables."""
+        if section == 'summary':
+            local_vars['summary_content'] = content
+        elif section == 'experience':
+            local_vars['experience_content'] = content
+        elif section == 'skills':
+            local_vars['skills_content'] = content
+        elif section == 'education':
+            local_vars['education_content'] = content
     
     def _create_fallback_cv(self, contact_info: Dict[str, str], cv_matches: Dict[str, Any]) -> GeneratedCV:
         """Create a fallback CV when generation fails."""

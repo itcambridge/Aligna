@@ -376,23 +376,25 @@ def main():
                     # Knowledge base specific metrics
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
+                        cv_sources_used = result.get('matches_summary', {}).get('cv_sources_used', [])
                         st.markdown(f"""
                         <div class="metric-card">
                             <h3>CVs Used</h3>
-                            <h2>{len(result['matches_summary']['cv_sources_used'])}</h2>
+                            <h2>{len(cv_sources_used)}</h2>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with col2:
+                        total_matches = result.get('matches_summary', {}).get('total_matches', 0)
                         st.markdown(f"""
                         <div class="metric-card">
                             <h3>Matches Found</h3>
-                            <h2>{result['matches_summary']['total_matches']}</h2>
+                            <h2>{total_matches}</h2>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with col3:
-                        match_rate = result['matches_summary']['match_rate'] * 100
+                        match_rate = result.get('matches_summary', {}).get('match_rate', 0) * 100
                         st.markdown(f"""
                         <div class="metric-card">
                             <h3>Match Rate</h3>
@@ -401,10 +403,11 @@ def main():
                         """, unsafe_allow_html=True)
                     
                     with col4:
+                        total_chunks = result.get('cv_stats', {}).get('total_chunks', 0)
                         st.markdown(f"""
                         <div class="metric-card">
                             <h3>Total Experience</h3>
-                            <h2>{result['cv_stats']['total_chunks']}</h2>
+                            <h2>{total_chunks}</h2>
                         </div>
                         """, unsafe_allow_html=True)
                     
