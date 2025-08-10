@@ -133,17 +133,55 @@ Generate a tailored CV using ONLY the provided evidence.""")
         """Prepare CV evidence for the prompt."""
         evidence_parts = []
         
-        for category, category_matches in cv_matches.get("matches", {}).items():
-            evidence_parts.append(f"\n{category.upper()}:")
+        # Handle different cv_matches structures
+        if "matches" in cv_matches and isinstance(cv_matches["matches"], list):
+            # Knowledge base format: list of matches
+            evidence_parts.append("RELEVANT EXPERIENCE FROM CV KNOWLEDGE BASE:")
+            evidence_parts.append("-" * 50)
             
-            for requirement, matches in category_matches.items():
-                evidence_parts.append(f"\n  {requirement}:")
+            for i, match in enumerate(cv_matches["matches"][:10], 1):  # Top 10 matches
+                text = match.get("text", "No text available")
+                score = match.get("score", 0.0)
+                section = match.get("section", "Unknown section")
+                cv_id = match.get("cv_id", "Unknown CV")
                 
-                if matches:
-                    for i, match in enumerate(matches[:3], 1):  # Top 3 matches
-                        evidence_parts.append(f"    {i}. {match['text']} (Score: {match['score']:.2f})")
-                else:
-                    evidence_parts.append("    No matching evidence found")
+                evidence_parts.append(f"{i}. [{section}] {text}")
+                evidence_parts.append(f"   Source: CV {cv_id[:8]}... | Relevance: {score:.2f}")
+                evidence_parts.append("")
+                
+        elif "matches" in cv_matches and isinstance(cv_matches["matches"], dict):
+            # Original format: nested dictionary
+            for category, category_matches in cv_matches["matches"].items():
+                evidence_parts.append(f"\n{category.upper()}:")
+                
+                for requirement, matches in category_matches.items():
+                    evidence_parts.append(f"\n  {requirement}:")
+                    
+                    if matches:
+                        for i, match in enumerate(matches[:3], 1):  # Top 3 matches
+                            evidence_parts.append(f"    {i}. {match['text']} (Score: {match['score']:.2f})")
+                    else:
+                        evidence_parts.append("    No matching evidence found")
+        else:
+            # Fallback: try to extract any available matches
+            evidence_parts.append("AVAILABLE EVIDENCE:")
+            evidence_parts.append("-" * 30)
+            
+            # Look for any list of matches in the structure
+            matches = []
+            if isinstance(cv_matches, dict):
+                for key, value in cv_matches.items():
+                    if isinstance(value, list) and value:
+                        matches.extend(value)
+            
+            if matches:
+                for i, match in enumerate(matches[:10], 1):
+                    if isinstance(match, dict):
+                        text = match.get("text", str(match))
+                        score = match.get("score", "N/A")
+                        evidence_parts.append(f"{i}. {text} (Score: {score})")
+            else:
+                evidence_parts.append("No evidence available")
         
         return "\n".join(evidence_parts)
     

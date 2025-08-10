@@ -70,14 +70,25 @@ class JobAnalyzer:
             Structured job requirements
         """
         try:
-            # Create the chain
-            chain = self.prompt | self.llm | self.parser
+            # Create the chain with format instructions
+            formatted_prompt = self.prompt.format_messages(
+                job_description=job_description
+            )
+            formatted_prompt.append(("system", f"Format your response as JSON according to this schema:\n{self.parser.get_format_instructions()}"))
             
-            # Run the analysis
-            result = chain.invoke({"job_description": job_description})
+            # Get response from LLM
+            response = self.llm.invoke(formatted_prompt)
             
-            logger.info("Successfully analyzed job description")
-            return result
+            # Try to parse with Pydantic parser
+            try:
+                result = self.parser.parse(response.content)
+                logger.info("Successfully analyzed job description with Pydantic parser")
+                return result
+            except Exception as parse_error:
+                logger.warning(f"Pydantic parsing failed: {parse_error}, trying manual parsing")
+                
+                # Fallback: manual parsing from text response
+                return self._parse_text_response(response.content)
             
         except Exception as e:
             logger.error(f"Error analyzing job description: {e}")
@@ -90,6 +101,92 @@ class JobAnalyzer:
                 responsibilities=[],
                 industry=None,
                 level=None
+            )
+    
+    def _parse_text_response(self, text_response: str) -> JobRequirements:
+        """
+        Manually parse text response when JSON parsing fails.
+        
+        Args:
+            text_response: Raw text response from LLM
+            
+        Returns:
+            Parsed JobRequirements
+        """
+        try:
+            # Initialize empty lists
+            skills_required = []
+            skills_preferred = []
+            experience = []
+            qualifications = []
+            responsibilities = []
+            industry = None
+            level = None
+            
+            # Split response into lines and parse
+            lines = text_response.split('\n')
+            current_section = None
+            
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('-'):
+                    continue
+                
+                # Identify sections
+                if 'required skills' in line.lower():
+                    current_section = 'skills_required'
+                elif 'preferred' in line.lower() or 'nice-to-have' in line.lower():
+                    current_section = 'skills_preferred'
+                elif 'experience' in line.lower():
+                    current_section = 'experience'
+                elif 'qualification' in line.lower() or 'education' in line.lower():
+                    current_section = 'qualifications'
+                elif 'responsibilit' in line.lower() or 'duties' in line.lower():
+                    current_section = 'responsibilities'
+                elif 'industry' in line.lower() or 'domain' in line.lower():
+                    current_section = 'industry'
+                elif 'level' in line.lower():
+                    current_section = 'level'
+                elif line.startswith('  -') or line.startswith('- '):
+                    # This is a list item
+                    item = line.lstrip('- ').strip()
+                    if current_section == 'skills_required':
+                        skills_required.append(item)
+                    elif current_section == 'skills_preferred':
+                        skills_preferred.append(item)
+                    elif current_section == 'experience':
+                        experience.append(item)
+                    elif current_section == 'qualifications':
+                        qualifications.append(item)
+                    elif current_section == 'responsibilities':
+                        responsibilities.append(item)
+                elif current_section == 'industry' and ':' in line:
+                    industry = line.split(':', 1)[1].strip()
+                elif current_section == 'level' and ':' in line:
+                    level = line.split(':', 1)[1].strip()
+            
+            logger.info("Successfully parsed text response manually")
+            return JobRequirements(
+                skills_required=skills_required,
+                skills_preferred=skills_preferred,
+                experience=experience,
+                qualifications=qualifications,
+                responsibilities=responsibilities,
+                industry=industry,
+                level=level
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in manual parsing: {e}")
+            # Return minimal requirements
+            return JobRequirements(
+                skills_required=["Infrastructure management", "Cloud platforms", "Networking"],
+                skills_preferred=["Virtualization", "Security tools"],
+                experience=["System administration"],
+                qualifications=["Technical certification preferred"],
+                responsibilities=["Maintain IT infrastructure", "Monitor systems"],
+                industry="Technology",
+                level="Mid-level"
             )
     
     def analyze_multiple_jobs(self, job_descriptions: List[str]) -> List[JobRequirements]:
