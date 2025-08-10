@@ -194,8 +194,12 @@ st.markdown("""
     /* Main Interface Card */
     .main-card {
         max-width: 768px;
-        margin: 0 auto 128px auto;
+        margin: 0 auto;
         padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
     }
     
     .interface-card {
@@ -205,6 +209,37 @@ st.markdown("""
         border-radius: 24px;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
         padding: 48px;
+        width: 100%;
+    }
+    
+    /* CV Management Link */
+    .cv-management-link {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(229, 231, 235, 0.8);
+        border-radius: 24px;
+        padding: 8px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 1000;
+    }
+    
+    .cv-management-link:hover {
+        background: rgba(255, 255, 255, 1);
+        border-color: #d1d5db;
+        text-decoration: none;
+        color: #111827;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .card-header {
@@ -513,32 +548,6 @@ def main():
         # User is not authenticated, login page is shown
         return
     
-    # Apple-style Navigation
-    st.markdown("""
-    <nav class="apple-nav">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <div class="nav-icon">✨</div>
-                <div class="nav-text">
-                    <h1>Grounded CV Generator</h1>
-                    <p>AI-powered CV generation</p>
-                </div>
-            </div>
-            <a href="/cv_management" target="_self" class="nav-button">
-                📄 Manage CVs
-            </a>
-        </div>
-    </nav>
-    """, unsafe_allow_html=True)
-    
-    # User info in sidebar (hidden by default)
-    with st.sidebar:
-        auth.show_user_info()
-        st.markdown("---")
-        st.markdown("### Navigation")
-        if st.button("📚 Manage CVs", use_container_width=True):
-            st.switch_page("pages/cv_management.py")
-    
     # Initialize user-specific generator
     generator = GroundedCVGenerator(user_id=user_id)
     
@@ -547,67 +556,21 @@ def main():
     
     # Check if user has CVs in knowledge base
     if cv_stats["total_cvs"] == 0:
-        # No CVs - show welcome section
-        st.markdown("""
-        <div class="welcome-section">
-            <div class="welcome-card">
-                <h2 class="welcome-title">Welcome to Grounded CV Generator</h2>
-                <p class="welcome-subtitle">You need to upload at least one CV before you can generate tailored CVs.</p>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("📚 Go to CV Management", use_container_width=True, type="primary"):
-                st.switch_page("pages/cv_management.py")
-        
-        st.markdown("""
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # No CVs - redirect to CV management
+        st.switch_page("pages/cv_management.py")
         return
     
-    # Hero Section
-    st.markdown(f"""
-    <section class="hero-section">
-        <div class="hero-badge">
-            ✨ AI-Powered CV Generation
-        </div>
-        
-        <h1 class="hero-title">
-            Create the perfect CV<br>
-            <span class="hero-gradient-text">from your experience</span>
-        </h1>
-        
-        <p class="hero-subtitle">
-            Generate tailored CVs instantly using AI that understands your background and matches it perfectly to any job description.
-        </p>
-        
-        <div class="stats-container">
-            <div class="stat-item">
-                <div class="stat-number">{cv_stats['total_cvs']}</div>
-                <div class="stat-label">CVs in Knowledge Base</div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-                <div class="stat-number">{cv_stats.get('match_rate', 89)}%</div>
-                <div class="stat-label">Average Match Rate</div>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-                <div class="stat-number">{cv_stats['total_chunks']}</div>
-                <div class="stat-label">Experience Points</div>
-            </div>
-        </div>
-    </section>
+    # Add CV Management link
+    st.markdown("""
+    <a href="/cv_management" target="_self" class="cv-management-link">
+        📄 Manage CVs
+    </a>
     """, unsafe_allow_html=True)
     
-    # Main Interface Card
+    # Ultra-minimal interface - ONLY textarea and button
     st.markdown("""
     <section class="main-card">
         <div class="interface-card">
-            <div class="card-header">
-                <h2 class="card-title">Job Description</h2>
-            </div>
     """, unsafe_allow_html=True)
     
     # Job description input
