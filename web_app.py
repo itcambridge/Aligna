@@ -606,9 +606,7 @@ def main():
     <section class="main-card">
         <div class="interface-card">
             <div class="card-header">
-                <div class="card-icon">🎯</div>
                 <h2 class="card-title">Job Description</h2>
-                <p class="card-subtitle">Paste the job description and let AI create your perfect CV</p>
             </div>
     """, unsafe_allow_html=True)
     
