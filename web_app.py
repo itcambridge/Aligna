@@ -560,17 +560,16 @@ def main():
         st.switch_page("pages/cv_management.py")
         return
     
-    # Add CV Management link
+    # Add CV Management link (moved to bottom right, smaller)
     st.markdown("""
-    <a href="/cv_management" target="_self" class="cv-management-link">
+    <a href="/cv_management" target="_self" class="cv-management-link" style="top: auto; bottom: 24px; font-size: 12px; padding: 6px 16px;">
         📄 Manage CVs
     </a>
     """, unsafe_allow_html=True)
     
-    # Ultra-minimal interface - ONLY textarea and button
+    # Ultra-minimal interface - textarea at very top
     st.markdown("""
-    <section class="main-card">
-        <div class="interface-card">
+    <div style="padding: 24px; max-width: 768px; margin: 0 auto;">
     """, unsafe_allow_html=True)
     
     # Job description input
@@ -590,7 +589,7 @@ def main():
             type="primary"
         )
     
-    st.markdown("</div></section>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     
     # Processing section - Pure generation from knowledge base
     if process_button and job_description:
