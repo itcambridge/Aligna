@@ -297,8 +297,47 @@ def main():
         
         # Processing section - Handle both new CV upload and knowledge base generation
         if process_button and job_description:
-            # Check if we should use knowledge base or upload new CV
-            use_knowledge_base = cv_stats["total_cvs"] > 0 and not cv_file
+            # First, handle CV upload if there's a file
+            if cv_file:
+                st.markdown("""
+                <div class="progress-container">
+                    <h3 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">
+                        📄 Processing Your CV
+                    </h3>
+                """, unsafe_allow_html=True)
+                
+                try:
+                    # Save uploaded file temporarily
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{cv_file.name.split('.')[-1]}") as tmp_file:
+                        tmp_file.write(cv_file.getvalue())
+                        tmp_file_path = tmp_file.name
+                    
+                    with st.spinner("📄 Processing CV file..."):
+                        # Process the CV upload
+                        cv_result = generator.process_cv_upload(tmp_file_path, user_id)
+                        
+                        if cv_result["status"] == "success":
+                            st.success(f"✅ CV processed successfully! Added {cv_result['total_chunks']} sections to your knowledge base")
+                            # Update CV stats after successful upload
+                            cv_stats = generator.get_user_cv_collection(user_id)
+                        else:
+                            raise Exception(f"CV processing failed: {cv_result.get('error')}")
+                    
+                    # Clean up temporary file
+                    os.unlink(tmp_file_path)
+                    
+                except Exception as e:
+                    st.error(f"❌ Error processing CV: {str(e)}")
+                    logger.error(f"Error processing CV upload: {e}")
+                    if 'tmp_file_path' in locals():
+                        try:
+                            os.unlink(tmp_file_path)
+                        except:
+                            pass
+                    return
+            
+            # Check if we should use knowledge base or need CV upload
+            use_knowledge_base = cv_stats["total_cvs"] > 0
             
             if use_knowledge_base:
                 # Generate from knowledge base
