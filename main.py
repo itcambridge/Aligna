@@ -80,7 +80,6 @@ class GroundedCVGenerator:
         try:
             result = self.cv_processor.process_cv(
                 file_path=file_path,
-                user_id=user_id,
                 cv_id=cv_id
             )
             
@@ -288,7 +287,7 @@ class GroundedCVGenerator:
         logger.info(f"Getting CV collection for user {user_id}")
         
         try:
-            return self.cv_processor.get_user_cv_stats(user_id)
+            return self.cv_processor.get_user_cv_stats()
         except Exception as e:
             logger.error(f"Error getting user CV collection: {e}")
             return {
@@ -333,7 +332,6 @@ class GroundedCVGenerator:
             # Step 3: Search across ALL user's CVs for relevant experience
             matches = self.cv_processor.search_across_all_user_cvs(
                 query=job_description,
-                user_id=user_id,
                 limit=20  # Get more matches since we have more data
             )
             
