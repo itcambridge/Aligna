@@ -23,14 +23,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import our modules
-from modules.cv_ingestion.cv_processor import CVProcessor
+# Import our modules - Enhanced versions for better performance
+from modules.cv_ingestion.enhanced_cv_processor import EnhancedCVProcessor
 from modules.cv_ingestion.user_cv_processor import UserCVProcessor
 from modules.job_search.job_searcher import JobSearcher
 from agents.job_breakdown.job_analyzer import JobAnalyzer
-from agents.cv_matcher.cv_matcher import CVMatcher
+from agents.cv_matcher.enhanced_cv_matcher import EnhancedCVMatcher
 from agents.cv_writer.cv_writer import CVWriter
-from utils.user_qdrant_client import UserQdrantClient
+from utils.enhanced_qdrant_client import EnhancedQdrantCVClient
 
 class GroundedCVGenerator:
     """Main orchestrator for the grounded CV generation system."""
@@ -44,18 +44,13 @@ class GroundedCVGenerator:
         """
         self.user_id = user_id
         
-        # Initialize components with user-specific configuration
-        if user_id:
-            self.cv_processor = UserCVProcessor(user_id)
-            self.user_qdrant_client = UserQdrantClient(user_id)
-        else:
-            # Fallback to original processor for backward compatibility
-            self.cv_processor = CVProcessor()
-            self.user_qdrant_client = None
+        # Initialize components with enhanced versions
+        self.cv_processor = EnhancedCVProcessor()
+        self.enhanced_qdrant_client = EnhancedQdrantCVClient()
         
         self.job_searcher = JobSearcher()
         self.job_analyzer = JobAnalyzer()
-        self.cv_matcher = CVMatcher()
+        self.cv_matcher = EnhancedCVMatcher()
         self.cv_writer = CVWriter()
     
     def process_cv_upload(
@@ -65,7 +60,7 @@ class GroundedCVGenerator:
         cv_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Process a CV upload: parse, chunk, embed, and store.
+        Process a CV upload: parse, chunk, embed, and store with enhanced metadata.
         
         Args:
             file_path: Path to the CV file
@@ -73,18 +68,20 @@ class GroundedCVGenerator:
             cv_id: Optional CV identifier
             
         Returns:
-            Processing results
+            Processing results with enhanced metadata
         """
-        logger.info(f"Processing CV upload: {file_path}")
+        logger.info(f"Processing CV upload with enhanced system: {file_path}")
         
         try:
-            result = self.cv_processor.process_cv(
+            result = self.cv_processor.process_cv_enhanced(
                 file_path=file_path,
+                user_id=user_id,
                 cv_id=cv_id
             )
             
             if result["status"] == "success":
-                logger.info(f"Successfully processed CV: {result['cv_id']}")
+                logger.info(f"Successfully processed enhanced CV: {result['cv_id']}")
+                logger.info(f"Extracted structured metadata: {len(result['structured_metadata']['skills'])} skills, {len(result['structured_metadata']['experience'])} experience entries")
             else:
                 logger.error(f"Failed to process CV: {result.get('error')}")
             
@@ -191,15 +188,15 @@ class GroundedCVGenerator:
             from agents.job_breakdown.job_analyzer import JobRequirements
             requirements_obj = JobRequirements(**job_requirements)
             
-            # Match CV against job requirements
-            matches = self.cv_matcher.match_job_requirements(
+            # Match CV against job requirements using enhanced matcher
+            matches = self.cv_matcher.match_job_requirements_enhanced(
                 job_requirements=requirements_obj,
-                cv_id=cv_id,
                 user_id=user_id,
-                top_k=5
+                cv_id=cv_id,
+                top_k=15
             )
             
-            logger.info(f"Successfully matched CV with match rate: {matches['summary']['match_rate']:.2%}")
+            logger.info(f"Successfully matched CV with enhanced system - overall score: {matches['match_summary']['overall_match_score']:.2f}")
             return matches
             
         except Exception as e:
