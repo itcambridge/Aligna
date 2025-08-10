@@ -239,7 +239,6 @@ def main():
     # CV Collection Overview
     st.markdown("""
     <div class="section">
-        <h2 class="section-title">📊 Your CV Knowledge Base Overview</h2>
     """, unsafe_allow_html=True)
         
     # Display CV collection stats
@@ -295,7 +294,6 @@ def main():
     # CV Upload Section
     st.markdown("""
     <div class="section">
-        <h2 class="section-title">📤 Upload New CV</h2>
         <div class="upload-area">
             <h3 class="upload-title">📄 Add CV to Knowledge Base</h3>
             <p class="upload-subtitle">Upload PDF or DOCX files to expand your CV knowledge base</p>
@@ -345,7 +343,6 @@ def main():
     # Quick Actions Section
     st.markdown("""
     <div class="section">
-        <h2 class="section-title">⚡ Quick Actions</h2>
         <div class="quick-actions-grid">
     """, unsafe_allow_html=True)
     
