@@ -221,7 +221,7 @@ class StreamlitAuth:
                     if result["success"]:
                         st.session_state.authenticated = True
                         st.session_state.user_id = result["user_id"]
-                        st.session_state.user_email = result["user"]["email"]
+                        st.session_state.user_email = result["user"].email
                         st.session_state.session_token = result["session"].access_token
                         st.success("Login successful!")
                         st.rerun()
