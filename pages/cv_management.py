@@ -236,12 +236,7 @@ def main():
     # Main content with padding for the back link
     st.markdown('<div style="padding-top: 80px;"></div>', unsafe_allow_html=True)
     
-    # CV Collection Overview
-    st.markdown("""
-    <div class="section">
-    """, unsafe_allow_html=True)
-        
-    # Display CV collection stats
+    # CV Collection Overview - Display CV collection stats
     if cv_stats["total_cvs"] > 0:
         col1_stats, col2_stats, col3_stats, col4_stats = st.columns(4)
         
@@ -283,17 +278,15 @@ def main():
             """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div style="text-align: center; padding: 40px; color: #6b7280;">
+        <div style="text-align: center; padding: 40px; color: #6b7280; max-width: 600px; margin: 0 auto;">
             <h3 style="color: #111827; font-weight: 300;">No CVs in your knowledge base yet</h3>
             <p>Upload your first CV below to get started!</p>
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
         
     # CV Upload Section
     st.markdown("""
-    <div class="section">
+    <div style="max-width: 800px; margin: 48px auto;">
         <div class="upload-area">
             <h3 class="upload-title">📄 Add CV to Knowledge Base</h3>
             <p class="upload-subtitle">Upload PDF or DOCX files to expand your CV knowledge base</p>
@@ -342,7 +335,7 @@ def main():
     
     # Quick Actions Section
     st.markdown("""
-    <div class="section">
+    <div style="max-width: 800px; margin: 48px auto;">
         <div class="quick-actions-grid">
     """, unsafe_allow_html=True)
     
