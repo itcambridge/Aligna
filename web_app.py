@@ -127,6 +127,37 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
     }
+    
+    .nav-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        background: rgba(255, 255, 255, 0.95);
+        margin-bottom: 40px;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-button {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 25px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+    }
+    
+    .nav-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+        text-decoration: none;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -142,24 +173,26 @@ def main():
         return
     
     # User is authenticated, show main interface
-    # Header with user info
-    col1, col2 = st.columns([4, 1])
-    
-    with col1:
-        st.markdown("""
-        <div class="header">
-            <h1 style="font-size: 3.5rem; font-weight: 300; margin-bottom: 20px; color: #2c3e50;">
-                Grounded CV Generator
-            </h1>
-            <p style="font-size: 1.2rem; color: #7f8c8d; margin-bottom: 0;">
-                AI-powered CV generation with evidence-based matching from your CV knowledge base
-            </p>
+    # Navigation header
+    st.markdown("""
+    <div class="nav-header">
+        <div>
+            <h1 style="margin: 0; color: #2c3e50; font-size: 2.5rem;">🚀 Grounded CV Generator</h1>
+            <p style="margin: 5px 0 0 0; color: #7f8c8d;">AI-powered CV generation from your knowledge base</p>
         </div>
-        """, unsafe_allow_html=True)
+        <div>
+            <a href="/cv_management" target="_self" class="nav-button">📚 Manage CVs</a>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
+    # User info in sidebar
+    with st.sidebar:
         auth.show_user_info()
+        st.markdown("---")
+        st.markdown("### Navigation")
+        if st.button("📚 Manage CVs", use_container_width=True):
+            st.switch_page("pages/cv_management.py")
     
     # Initialize user-specific generator
     generator = GroundedCVGenerator(user_id=user_id)
