@@ -328,6 +328,7 @@ class GroundedCVGenerator:
             
             # Step 3: Search across ALL user's CVs for relevant experience
             matches = self.cv_processor.search_across_all_user_cvs(
+                user_id=user_id,
                 query=job_description,
                 limit=20  # Get more matches since we have more data
             )

@@ -550,6 +550,76 @@ class EnhancedCVProcessor:
         """Get comprehensive skill inventory for a user."""
         return self.qdrant_client.get_user_skill_inventory(user_id)
     
+    def search_across_all_user_cvs(
+        self,
+        user_id: str,
+        query: str,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Search across all CVs in a user's knowledge base.
+        
+        Args:
+            user_id: User identifier
+            query: Search query (job description or requirements)
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of relevant CV chunks from all user's CVs
+        """
+        try:
+            # Generate embedding for the query
+            query_embedding = self.embedding_generator.generate_single_embedding(query)
+            
+            if not query_embedding:
+                logger.error("Failed to generate embedding for search query")
+                return []
+            
+            # Use enhanced Qdrant client to search with user filtering
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            
+            # Search in the enhanced collection with user filtering
+            search_results = self.qdrant_client.client.search(
+                collection_name=self.qdrant_client.collection_name,
+                query_vector=query_embedding,
+                query_filter=Filter(
+                    must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
+                ),
+                limit=limit,
+                with_payload=True,
+                score_threshold=0.3  # Minimum relevance threshold
+            )
+            
+            # Format results for compatibility with existing workflow
+            formatted_results = []
+            for result in search_results:
+                payload = result.payload
+                
+                formatted_result = {
+                    "id": str(result.id),
+                    "text": payload.get("text", ""),
+                    "section": payload.get("section", "unknown"),
+                    "cv_id": payload.get("cv_id", ""),
+                    "user_id": payload.get("user_id", ""),
+                    "score": float(result.score),
+                    "created_at": payload.get("created_at", ""),
+                    # Include enhanced metadata
+                    "skills": payload.get("skills", []),
+                    "experience": payload.get("experience", []),
+                    "education": payload.get("education", []),
+                    "certifications": payload.get("certifications", []),
+                    "metadata": payload.get("metadata", {})
+                }
+                
+                formatted_results.append(formatted_result)
+            
+            logger.info(f"Found {len(formatted_results)} relevant chunks across user's CV knowledge base")
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"Error searching across user CVs: {e}")
+            return []
+    
     def delete_cv(self, cv_id: str) -> bool:
         """Delete a CV and all its chunks from enhanced Qdrant."""
         return self.qdrant_client.delete_cv_chunks(cv_id)
