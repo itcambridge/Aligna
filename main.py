@@ -401,7 +401,7 @@ class GroundedCVGenerator:
                 "coverage_matrix": evidence_validation["coverage_matrix"],
                 "source_attribution": source_attribution,
                 "matches_summary": {
-                    "total_matches": len(cv_matches),
+                    "total_matches": len(cv_matches["matches"]),
                     "cv_sources_used": list(source_attribution.keys()),
                     "match_rate": evidence_validation["coverage_matrix"]["summary"]["overall_coverage_rate"]
                 },
@@ -441,19 +441,15 @@ class GroundedCVGenerator:
             "cv_id": "knowledge_base",
             "user_id": self.user_id,
             "job_requirements": {},
-            "matches": {},
+            "matches": [],  # Changed to a list for knowledge base format
             "summary": {
                 "overall_match_score": 0.0,
                 "total_matches": 0
             }
         }
         
-        # Group evidence by requirement category
+        # Add all evidence as matches in a flat list (knowledge base format)
         for req in covered_requirements:
-            category = req.category
-            if category not in matches["matches"]:
-                matches["matches"][category] = []
-            
             # Add evidence as matches
             for evidence in req.evidence:
                 match = {
@@ -461,24 +457,21 @@ class GroundedCVGenerator:
                     "score": evidence.get("score", 0.0),
                     "cv_id": evidence.get("cv_id", "unknown"),
                     "section": evidence.get("section", "unknown"),
-                    "chunk_index": evidence.get("chunk_index", 0)
+                    "chunk_index": evidence.get("chunk_index", 0),
+                    "category": req.category  # Add category for reference
                 }
-                matches["matches"][category].append(match)
+                matches["matches"].append(match)
         
         # Calculate summary
-        total_matches = sum(len(matches["matches"][cat]) for cat in matches["matches"])
-        avg_score = sum(
-            match["score"] 
-            for cat in matches["matches"].values() 
-            for match in cat
-        ) / total_matches if total_matches > 0 else 0.0
+        total_matches = len(matches["matches"])
+        avg_score = sum(match["score"] for match in matches["matches"]) / total_matches if total_matches > 0 else 0.0
         
         matches["summary"]["total_matches"] = total_matches
         matches["summary"]["overall_match_score"] = avg_score
         
         return matches
     
-    def _extract_contact_from_matches(self, matches: List[Dict[str, Any]]) -> Dict[str, str]:
+    def _extract_contact_from_matches(self, matches: Dict[str, Any]) -> Dict[str, str]:
         """Extract contact information from matches."""
         # This is a simplified version - in practice, you'd want to extract
         # contact info from the original CVs
