@@ -76,8 +76,8 @@ class EnhancedCVProcessor:
             logger.info(f"Parsing CV file: {file_path}")
             parsed_content = self.parser.parse_file(file_path)
             
-            # Step 2: Extract structured metadata from full text
-            full_text = parsed_content.get("text", "")
+            # Step 2: Extract full text from parsed content
+            full_text = self._extract_full_text_from_parsed_content(parsed_content)
             structured_metadata = self._extract_structured_metadata(full_text)
             
             # Step 3: Chunk the text with section awareness
@@ -134,6 +134,24 @@ class EnhancedCVProcessor:
                 "error": str(e),
                 "processed_at": datetime.now().isoformat()
             }
+    
+    def _extract_full_text_from_parsed_content(self, parsed_content: Dict[str, Any]) -> str:
+        """
+        Extract full text from parsed content structure.
+        
+        Args:
+            parsed_content: Parsed content from CV parser
+            
+        Returns:
+            Combined full text string
+        """
+        full_text = ""
+        
+        # Handle the content list structure from CV parser
+        for item in parsed_content.get("content", []):
+            full_text += item.get("text", "") + "\n"
+        
+        return full_text.strip()
     
     def _extract_structured_metadata(self, text: str) -> Dict[str, Any]:
         """
@@ -323,8 +341,8 @@ class EnhancedCVProcessor:
         overlap: int
     ) -> List[Dict[str, Any]]:
         """Chunk text and associate relevant metadata with each chunk."""
-        text = parsed_content.get("text", "")
-        chunks = self.parser.chunk_text({"text": text}, chunk_size, overlap)
+        # Use the parser's chunk_text method with the correct structure
+        chunks = self.parser.chunk_text(parsed_content, chunk_size, overlap)
         
         enhanced_chunks = []
         for i, chunk in enumerate(chunks):
@@ -535,3 +553,52 @@ class EnhancedCVProcessor:
     def delete_cv(self, cv_id: str) -> bool:
         """Delete a CV and all its chunks from enhanced Qdrant."""
         return self.qdrant_client.delete_cv_chunks(cv_id)
+    
+    def get_user_cv_stats(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get user CV statistics from enhanced Qdrant collection.
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            Dictionary containing user CV statistics
+        """
+        try:
+            # Get collection stats
+            collection_stats = self.qdrant_client.get_collection_stats()
+            
+            # Get user skill inventory (which includes CV information)
+            skill_inventory = self.qdrant_client.get_user_skill_inventory(user_id)
+            
+            # Basic stats structure
+            stats = {
+                "user_id": user_id,
+                "total_cvs": 0,
+                "total_chunks": 0,
+                "unique_sections": 0,
+                "cv_list": [],
+                "collection_stats": collection_stats
+            }
+            
+            # If we have skill inventory data, extract stats from it
+            if "error" not in skill_inventory:
+                stats.update({
+                    "total_skills": skill_inventory.get("summary", {}).get("total_skills", 0),
+                    "total_roles": skill_inventory.get("summary", {}).get("total_roles", 0),
+                    "total_education": skill_inventory.get("summary", {}).get("total_education", 0),
+                    "total_certifications": skill_inventory.get("summary", {}).get("total_certifications", 0),
+                    "skill_inventory": skill_inventory
+                })
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting user CV stats: {e}")
+            return {
+                "user_id": user_id,
+                "total_cvs": 0,
+                "total_chunks": 0,
+                "unique_sections": 0,
+                "error": str(e)
+            }
