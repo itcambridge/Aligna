@@ -356,6 +356,7 @@ class GroundedCVGenerator:
                 "total_matches": len(matches),
                 "cv_sources": len(matches_by_cv),
                 "summary": {
+                    "total_matches": len(matches),  # Add this key to summary
                     "match_rate": min(1.0, len(matches) / 10),  # Normalize to 0-1
                     "total_requirements": len(job_requirements.skills_required + job_requirements.skills_preferred),
                     "matched_requirements": len(matches),
