@@ -1,0 +1,63 @@
+{
+  "name": "Classic",
+  "description": "Traditional chronological CV format with detailed sections",
+  "sections": [
+    {
+      "id": "contact",
+      "title": "Contact Information",
+      "format": "header",
+      "content_template": "{name}\n{email} | {phone}\n{location}"
+    },
+    {
+      "id": "summary",
+      "title": "Professional Summary",
+      "format": "paragraph",
+      "content_template": "{summary_text}"
+    },
+    {
+      "id": "skills",
+      "title": "Skills",
+      "format": "bullet_list",
+      "content_template": "{skills_bullets}"
+    },
+    {
+      "id": "experience",
+      "title": "Professional Experience",
+      "format": "section_with_bullets",
+      "content_template": "{experience_bullets}"
+    },
+    {
+      "id": "education",
+      "title": "Education",
+      "format": "section_with_bullets",
+      "content_template": "{education_bullets}"
+    },
+    {
+      "id": "certifications",
+      "title": "Certifications",
+      "format": "bullet_list",
+      "content_template": "{certification_bullets}"
+    },
+    {
+      "id": "footnotes",
+      "title": "Evidence Citations",
+      "format": "footnotes",
+      "content_template": "{footnotes}"
+    }
+  ],
+  "style": {
+    "font_family": "Calibri, sans-serif",
+    "font_size": "11pt",
+    "line_spacing": "1.15",
+    "margins": {
+      "top": "1in",
+      "bottom": "1in",
+      "left": "1in",
+      "right": "1in"
+    },
+    "section_spacing": "12pt",
+    "bullet_style": "•"
+  },
+  "citation_format": "superscript_number",
+  "footnote_format": "[{index}] {source}: {snippet}"
+}

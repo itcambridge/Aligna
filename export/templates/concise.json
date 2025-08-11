@@ -1,0 +1,57 @@
+{
+  "name": "Concise",
+  "description": "Minimalist CV format focused on key achievements and skills",
+  "sections": [
+    {
+      "id": "contact",
+      "title": "",
+      "format": "header_minimal",
+      "content_template": "{name} | {email} | {phone}"
+    },
+    {
+      "id": "summary",
+      "title": "Profile",
+      "format": "paragraph_short",
+      "content_template": "{summary_text}"
+    },
+    {
+      "id": "skills",
+      "title": "Core Skills",
+      "format": "comma_list",
+      "content_template": "{skills_list}"
+    },
+    {
+      "id": "experience",
+      "title": "Key Experience",
+      "format": "compact_bullets",
+      "content_template": "{experience_bullets}"
+    },
+    {
+      "id": "education",
+      "title": "Education",
+      "format": "compact_list",
+      "content_template": "{education_compact}"
+    },
+    {
+      "id": "footnotes",
+      "title": "References",
+      "format": "footnotes_minimal",
+      "content_template": "{footnotes_minimal}"
+    }
+  ],
+  "style": {
+    "font_family": "Arial, sans-serif",
+    "font_size": "10pt",
+    "line_spacing": "1.0",
+    "margins": {
+      "top": "0.75in",
+      "bottom": "0.75in",
+      "left": "0.75in",
+      "right": "0.75in"
+    },
+    "section_spacing": "8pt",
+    "bullet_style": "-"
+  },
+  "citation_format": "superscript_letter",
+  "footnote_format": "{letter}. {source}"
+}

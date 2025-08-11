@@ -1,0 +1,63 @@
+{
+  "name": "Impact",
+  "description": "Achievement-focused CV format highlighting measurable results and impact",
+  "sections": [
+    {
+      "id": "contact",
+      "title": "Contact Information",
+      "format": "header_professional",
+      "content_template": "{name}\n{email} | {phone} | {linkedin}"
+    },
+    {
+      "id": "summary",
+      "title": "Executive Summary",
+      "format": "paragraph_bold_highlights",
+      "content_template": "{summary_text_with_highlights}"
+    },
+    {
+      "id": "impact_highlights",
+      "title": "Key Achievements",
+      "format": "impact_statements",
+      "content_template": "{impact_bullets}"
+    },
+    {
+      "id": "skills",
+      "title": "Technical Expertise",
+      "format": "categorized_skills",
+      "content_template": "{skills_by_category}"
+    },
+    {
+      "id": "experience",
+      "title": "Professional Experience",
+      "format": "experience_with_metrics",
+      "content_template": "{experience_with_metrics}"
+    },
+    {
+      "id": "education",
+      "title": "Education & Certifications",
+      "format": "education_with_highlights",
+      "content_template": "{education_with_highlights}"
+    },
+    {
+      "id": "footnotes",
+      "title": "Evidence & Citations",
+      "format": "footnotes_detailed",
+      "content_template": "{footnotes_detailed}"
+    }
+  ],
+  "style": {
+    "font_family": "Georgia, serif",
+    "font_size": "11pt",
+    "line_spacing": "1.2",
+    "margins": {
+      "top": "0.8in",
+      "bottom": "0.8in",
+      "left": "0.8in",
+      "right": "0.8in"
+    },
+    "section_spacing": "14pt",
+    "bullet_style": "→"
+  },
+  "citation_format": "inline_bracket",
+  "footnote_format": "[{index}] {source} ({date}): \"{snippet}\""
+}
