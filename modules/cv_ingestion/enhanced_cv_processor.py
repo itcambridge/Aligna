@@ -595,6 +595,11 @@ class EnhancedCVProcessor:
             for result in search_results:
                 payload = result.payload
                 
+                # Debug logging to see what we're getting
+                logger.info(f"Search result payload keys: {list(payload.keys())}")
+                logger.info(f"Text content length: {len(payload.get('text', ''))}")
+                logger.info(f"CV ID: {payload.get('cv_id', 'MISSING')}")
+                
                 formatted_result = {
                     "id": str(result.id),
                     "text": payload.get("text", ""),
@@ -614,6 +619,7 @@ class EnhancedCVProcessor:
                 formatted_results.append(formatted_result)
             
             logger.info(f"Found {len(formatted_results)} relevant chunks across user's CV knowledge base")
+            logger.info(f"Sample result text: {formatted_results[0]['text'][:100] if formatted_results else 'NO RESULTS'}")
             return formatted_results
             
         except Exception as e:
