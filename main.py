@@ -358,7 +358,7 @@ class GroundedCVGenerator:
             scored_requirements = evidence_validation["scored_requirements"]
             covered_requirements = self.evidence_validator.get_covered_requirements(
                 [self._dict_to_requirement_score(req) for req in scored_requirements],
-                min_confidence=0.7
+                min_confidence=0.4
             )
             
             # Step 4: Generate CV using only covered requirements

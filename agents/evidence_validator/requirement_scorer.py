@@ -295,8 +295,8 @@ class RequirementScorer:
         keyword_overlap = signals["keyword_overlap"]
         evidence_count = signals["evidence_count"]
         
-        # Coverage decision logic
-        covered = semantic_score >= 0.7 and keyword_overlap >= 0.3 and evidence_count > 0
+        # Coverage decision logic (more realistic thresholds)
+        covered = semantic_score >= 0.5 and keyword_overlap >= 0.2 and evidence_count > 0
         confidence = min(1.0, (semantic_score * 0.6 + keyword_overlap * 0.4) * (evidence_count / 3))
         
         # Identify gaps
