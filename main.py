@@ -284,7 +284,7 @@ class GroundedCVGenerator:
         logger.info(f"Getting CV collection for user {user_id}")
         
         try:
-            return self.cv_processor.get_user_cv_stats()
+            return self.cv_processor.get_user_cv_stats(user_id)
         except Exception as e:
             logger.error(f"Error getting user CV collection: {e}")
             return {

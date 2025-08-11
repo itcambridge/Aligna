@@ -565,23 +565,57 @@ class EnhancedCVProcessor:
             Dictionary containing user CV statistics
         """
         try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            
             # Get collection stats
             collection_stats = self.qdrant_client.get_collection_stats()
             
-            # Get user skill inventory (which includes CV information)
+            # Query user's CV chunks from enhanced collection
+            scroll_result = self.qdrant_client.client.scroll(
+                collection_name=self.qdrant_client.collection_name,
+                scroll_filter=Filter(
+                    must=[FieldCondition(key="user_id", match=MatchValue(value=user_id))]
+                ),
+                limit=1000,
+                with_payload=True
+            )
+            
+            # Process the results to get CV statistics
+            cv_chunks = scroll_result[0]
+            cv_ids = set()
+            sections = set()
+            total_chunks = len(cv_chunks)
+            
+            for chunk in cv_chunks:
+                payload = chunk.payload
+                cv_ids.add(payload.get("cv_id"))
+                sections.add(payload.get("section", "unknown"))
+            
+            # Get user skill inventory (which includes detailed analysis)
             skill_inventory = self.qdrant_client.get_user_skill_inventory(user_id)
             
-            # Basic stats structure
+            # Create CV list with basic info
+            cv_list = []
+            for cv_id in cv_ids:
+                cv_list.append({
+                    "cv_id": cv_id,
+                    "name": f"CV {cv_id[:8]}",
+                    "display_name": f"CV {cv_id[:8]}",
+                    "chunks": len([c for c in cv_chunks if c.payload.get("cv_id") == cv_id])
+                })
+            
+            # Build comprehensive stats
             stats = {
                 "user_id": user_id,
-                "total_cvs": 0,
-                "total_chunks": 0,
-                "unique_sections": 0,
-                "cv_list": [],
-                "collection_stats": collection_stats
+                "total_cvs": len(cv_ids),
+                "total_chunks": total_chunks,
+                "unique_sections": len(sections),
+                "cv_list": cv_list,
+                "collection_stats": collection_stats,
+                "sections": list(sections)
             }
             
-            # If we have skill inventory data, extract stats from it
+            # Add skill inventory data if available
             if "error" not in skill_inventory:
                 stats.update({
                     "total_skills": skill_inventory.get("summary", {}).get("total_skills", 0),
@@ -591,6 +625,7 @@ class EnhancedCVProcessor:
                     "skill_inventory": skill_inventory
                 })
             
+            logger.info(f"Retrieved CV stats for user {user_id}: {len(cv_ids)} CVs, {total_chunks} chunks")
             return stats
             
         except Exception as e:
