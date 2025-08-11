@@ -5,9 +5,21 @@ CV Exporter for generating CVs in different formats with citations.
 import os
 import json
 import re
+import io
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import logging
+import tempfile
+
+# Import libraries for DOCX and PDF generation
+import docx
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 
 logger = logging.getLogger(__name__)
 
@@ -444,25 +456,300 @@ class CVExporter:
     
     def _export_docx(self, cv_content: Dict[str, str], template: Dict[str, Any], output_path: Optional[str] = None) -> Dict[str, Any]:
         """Export CV as DOCX."""
-        # This would use a library like python-docx to create a DOCX file
-        # For now, we'll just return a placeholder result
-        return {
-            "status": "success",
-            "format": "docx",
-            "message": "DOCX export would be implemented here",
-            "file_path": output_path
-        }
+        try:
+            # Create a new document
+            doc = docx.Document()
+            
+            # Set document properties
+            doc.core_properties.author = cv_content.get("contact", "").split("\n")[0] if "contact" in cv_content else "CV Owner"
+            doc.core_properties.title = f"CV - {doc.core_properties.author}"
+            
+            # Set document styles
+            style = doc.styles['Normal']
+            style.font.name = 'Calibri'
+            style.font.size = Pt(11)
+            
+            # Add contact information
+            if "contact" in cv_content:
+                contact_lines = cv_content["contact"].split("\n")
+                # Name in larger font
+                if contact_lines:
+                    name_paragraph = doc.add_paragraph()
+                    name_run = name_paragraph.add_run(contact_lines[0])
+                    name_run.font.size = Pt(16)
+                    name_run.font.bold = True
+                
+                # Contact details
+                if len(contact_lines) > 1:
+                    contact_paragraph = doc.add_paragraph()
+                    contact_run = contact_paragraph.add_run(" | ".join(contact_lines[1:]))
+                    contact_run.font.size = Pt(10)
+            
+            # Add summary
+            if "summary" in cv_content and cv_content["summary"]:
+                doc.add_heading('PROFESSIONAL SUMMARY', level=1)
+                doc.add_paragraph(cv_content["summary"])
+            
+            # Add experience
+            if "experience" in cv_content and cv_content["experience"]:
+                doc.add_heading('WORK EXPERIENCE', level=1)
+                
+                # Split experience into bullet points
+                experience_bullets = cv_content["experience"].split("\n")
+                for bullet in experience_bullets:
+                    if bullet.strip():
+                        p = doc.add_paragraph()
+                        p.add_run(bullet.strip())
+                        p.style = 'List Bullet'
+            
+            # Add skills
+            if "skills" in cv_content and cv_content["skills"]:
+                doc.add_heading('SKILLS', level=1)
+                
+                # Check if skills are in bullet format or comma-separated
+                if "•" in cv_content["skills"] or "-" in cv_content["skills"]:
+                    # Bullet format
+                    skills_bullets = cv_content["skills"].split("\n")
+                    for bullet in skills_bullets:
+                        if bullet.strip():
+                            p = doc.add_paragraph()
+                            p.add_run(bullet.strip())
+                            p.style = 'List Bullet'
+                else:
+                    # Comma-separated format
+                    doc.add_paragraph(cv_content["skills"])
+            
+            # Add education
+            if "education" in cv_content and cv_content["education"]:
+                doc.add_heading('EDUCATION', level=1)
+                
+                # Split education into bullet points
+                education_bullets = cv_content["education"].split("\n")
+                for bullet in education_bullets:
+                    if bullet.strip():
+                        p = doc.add_paragraph()
+                        p.add_run(bullet.strip())
+                        p.style = 'List Bullet'
+            
+            # Add footnotes if available
+            if "footnotes" in cv_content and cv_content["footnotes"]:
+                doc.add_page_break()
+                doc.add_heading('EVIDENCE & CITATIONS', level=1)
+                doc.add_paragraph(cv_content["footnotes"])
+            
+            # Save the document
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                doc.save(output_path)
+            else:
+                # If no output path, save to a temporary file
+                with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+                    output_path = temp_file.name
+                    doc.save(output_path)
+            
+            # Read the file content for return
+            with open(output_path, 'rb') as f:
+                docx_content = f.read()
+            
+            return {
+                "status": "success",
+                "format": "docx",
+                "content": docx_content,
+                "file_path": output_path
+            }
+        
+        except Exception as e:
+            logger.error(f"Error creating DOCX: {e}")
+            return {
+                "status": "error",
+                "format": "docx",
+                "error": str(e),
+                "file_path": None
+            }
     
     def _export_pdf(self, cv_content: Dict[str, str], template: Dict[str, Any], output_path: Optional[str] = None) -> Dict[str, Any]:
         """Export CV as PDF."""
-        # This would use a library like reportlab to create a PDF file
-        # For now, we'll just return a placeholder result
-        return {
-            "status": "success",
-            "format": "pdf",
-            "message": "PDF export would be implemented here",
-            "file_path": output_path
-        }
+        try:
+            # Create a buffer if no output path
+            if not output_path:
+                buffer = io.BytesIO()
+                pdf_output = buffer
+            else:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                pdf_output = output_path
+            
+            # Create the PDF document
+            doc = SimpleDocTemplate(
+                pdf_output,
+                pagesize=letter,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=72,
+                bottomMargin=72
+            )
+            
+            # Create styles
+            styles = getSampleStyleSheet()
+            
+            # Define custom styles, checking if they already exist
+            custom_styles = {
+                'CustomHeading1': ParagraphStyle(
+                    name='CustomHeading1',
+                    parent=styles['Heading1'],
+                    fontSize=14,
+                    spaceAfter=12
+                ),
+                'CustomNormal': ParagraphStyle(
+                    name='CustomNormal',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    spaceAfter=6
+                ),
+                'CustomBullet': ParagraphStyle(
+                    name='CustomBullet',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    leftIndent=20,
+                    firstLineIndent=-15,
+                    spaceAfter=6
+                )
+            }
+            
+            # Add custom styles to the stylesheet
+            for style_name, style in custom_styles.items():
+                if style_name not in styles:
+                    styles.add(style)
+            
+            # Build the document content
+            content = []
+            
+            # Add contact information
+            if "contact" in cv_content:
+                contact_lines = cv_content["contact"].split("\n")
+                # Name in larger font
+                if contact_lines:
+                    name_style = ParagraphStyle(
+                        name='Name',
+                        parent=styles['Normal'],
+                        fontSize=16,
+                        alignment=1,  # Center
+                        spaceAfter=6
+                    )
+                    content.append(Paragraph(contact_lines[0], name_style))
+                
+                # Contact details
+                if len(contact_lines) > 1:
+                    contact_style = ParagraphStyle(
+                        name='Contact',
+                        parent=styles['Normal'],
+                        fontSize=10,
+                        alignment=1,  # Center
+                        spaceAfter=12
+                    )
+                    content.append(Paragraph(" | ".join(contact_lines[1:]), contact_style))
+            
+            # Add summary
+            if "summary" in cv_content and cv_content["summary"]:
+                content.append(Paragraph("PROFESSIONAL SUMMARY", styles["CustomHeading1"]))
+                content.append(Paragraph(cv_content["summary"], styles["CustomNormal"]))
+                content.append(Spacer(1, 12))
+            
+            # Add experience
+            if "experience" in cv_content and cv_content["experience"]:
+                content.append(Paragraph("WORK EXPERIENCE", styles["CustomHeading1"]))
+                
+                # Split experience into bullet points
+                experience_bullets = cv_content["experience"].split("\n")
+                for bullet in experience_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
+                
+                content.append(Spacer(1, 12))
+            
+            # Add skills
+            if "skills" in cv_content and cv_content["skills"]:
+                content.append(Paragraph("SKILLS", styles["CustomHeading1"]))
+                
+                # Check if skills are in bullet format or comma-separated
+                if "•" in cv_content["skills"] or "-" in cv_content["skills"]:
+                    # Bullet format
+                    skills_bullets = cv_content["skills"].split("\n")
+                    for bullet in skills_bullets:
+                        if bullet.strip():
+                            # Clean up bullet markers
+                            clean_bullet = bullet.strip()
+                            if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                                clean_bullet = clean_bullet[1:].strip()
+                            content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
+                else:
+                    # Comma-separated format
+                    content.append(Paragraph(cv_content["skills"], styles["CustomNormal"]))
+                
+                content.append(Spacer(1, 12))
+            
+            # Add education
+            if "education" in cv_content and cv_content["education"]:
+                content.append(Paragraph("EDUCATION", styles["CustomHeading1"]))
+                
+                # Split education into bullet points
+                education_bullets = cv_content["education"].split("\n")
+                for bullet in education_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
+                
+                content.append(Spacer(1, 12))
+            
+            # Add footnotes if available
+            if "footnotes" in cv_content and cv_content["footnotes"]:
+                content.append(Paragraph("EVIDENCE & CITATIONS", styles["CustomHeading1"]))
+                
+                # Split footnotes into individual entries
+                footnote_entries = cv_content["footnotes"].split("\n")
+                for entry in footnote_entries:
+                    if entry.strip():
+                        content.append(Paragraph(entry.strip(), styles["CustomNormal"]))
+            
+            # Build the PDF
+            doc.build(content)
+            
+            # Get the PDF content if using buffer
+            if not output_path:
+                pdf_content = buffer.getvalue()
+                buffer.close()
+                
+                # Save to a temporary file for return
+                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+                    output_path = temp_file.name
+                    with open(output_path, 'wb') as f:
+                        f.write(pdf_content)
+            else:
+                # Read the file content for return
+                with open(output_path, 'rb') as f:
+                    pdf_content = f.read()
+            
+            return {
+                "status": "success",
+                "format": "pdf",
+                "content": pdf_content,
+                "file_path": output_path
+            }
+        
+        except Exception as e:
+            logger.error(f"Error creating PDF: {e}")
+            return {
+                "status": "error",
+                "format": "pdf",
+                "error": str(e),
+                "file_path": None
+            }
     
     def _export_json(self, cv_data: Dict[str, Any], output_path: Optional[str] = None) -> Dict[str, Any]:
         """Export CV as JSON."""

@@ -44,6 +44,13 @@ def create_export_section(cv_data: Dict[str, Any], evidence_validation: Dict[str
 
 def create_document_export_tab(cv_data: Dict[str, Any]):
     """Create document export tab."""
+    # Initialize session state for export content if it doesn't exist
+    if 'export_content' not in st.session_state:
+        st.session_state.export_content = None
+        st.session_state.export_filename = None
+        st.session_state.export_mime = None
+        st.session_state.export_format = None
+    
     st.markdown("""
     <p style="margin-bottom: 16px;">Export your CV in different formats with citations preserved.</p>
     """, unsafe_allow_html=True)
@@ -85,6 +92,18 @@ def create_document_export_tab(cv_data: Dict[str, Any]):
         if st.button("🔄 JSON", use_container_width=True):
             export_cv(cv_data, selected_template, "json")
     
+    # Display download button if content is available
+    if st.session_state.export_content is not None:
+        st.download_button(
+            f"📥 Download CV ({st.session_state.export_format.upper()})",
+            st.session_state.export_content,
+            file_name=st.session_state.export_filename,
+            mime=st.session_state.export_mime,
+            key="download_cv_button"
+        )
+        
+        st.success(f"✅ CV exported successfully in {st.session_state.export_format.upper()} format! Click the download button above.")
+    
     # Citation style
     st.subheader("Citation Style")
     citation_style = st.radio(
@@ -105,6 +124,17 @@ def create_document_export_tab(cv_data: Dict[str, Any]):
 
 def create_evidence_export_tab(cv_data: Dict[str, Any], evidence_validation: Dict[str, Any]):
     """Create evidence export tab."""
+    # Initialize session state for evidence exports if they don't exist
+    if 'evidence_report_content' not in st.session_state:
+        st.session_state.evidence_report_content = None
+        st.session_state.evidence_report_filename = None
+        st.session_state.evidence_report_mime = None
+    
+    if 'coverage_matrix_content' not in st.session_state:
+        st.session_state.coverage_matrix_content = None
+        st.session_state.coverage_matrix_filename = None
+        st.session_state.coverage_matrix_mime = None
+    
     st.markdown("""
     <p style="margin-bottom: 16px;">Export detailed evidence reports and coverage analysis.</p>
     """, unsafe_allow_html=True)
@@ -119,13 +149,10 @@ def create_evidence_export_tab(cv_data: Dict[str, Any], evidence_validation: Dic
             # Create evidence report
             evidence_report = cv_data.get("evidence_report", "No evidence report available")
             
-            # Download
-            st.download_button(
-                "📥 Download Evidence Report",
-                evidence_report,
-                file_name="evidence_report.txt",
-                mime="text/plain"
-            )
+            # Store in session state
+            st.session_state.evidence_report_content = evidence_report
+            st.session_state.evidence_report_filename = "evidence_report.txt"
+            st.session_state.evidence_report_mime = "text/plain"
     
     with report_col2:
         if st.button("📈 Coverage Matrix", use_container_width=True):
@@ -133,44 +160,91 @@ def create_evidence_export_tab(cv_data: Dict[str, Any], evidence_validation: Dic
             coverage_matrix = evidence_validation.get("coverage_matrix", {})
             coverage_report = json.dumps(coverage_matrix, indent=2)
             
-            # Download
-            st.download_button(
-                "📥 Download Coverage Matrix",
-                coverage_report,
-                file_name="coverage_matrix.json",
-                mime="application/json"
-            )
+            # Store in session state
+            st.session_state.coverage_matrix_content = coverage_report
+            st.session_state.coverage_matrix_filename = "coverage_matrix.json"
+            st.session_state.coverage_matrix_mime = "application/json"
+    
+    # Display download buttons if content is available
+    if st.session_state.evidence_report_content is not None:
+        st.download_button(
+            "📥 Download Evidence Report",
+            st.session_state.evidence_report_content,
+            file_name=st.session_state.evidence_report_filename,
+            mime=st.session_state.evidence_report_mime,
+            key="download_evidence_report_button"
+        )
+        
+        st.success("✅ Evidence report generated successfully! Click the download button above.")
+    
+    if st.session_state.coverage_matrix_content is not None:
+        st.download_button(
+            "📥 Download Coverage Matrix",
+            st.session_state.coverage_matrix_content,
+            file_name=st.session_state.coverage_matrix_filename,
+            mime=st.session_state.coverage_matrix_mime,
+            key="download_coverage_matrix_button"
+        )
+        
+        st.success("✅ Coverage matrix generated successfully! Click the download button above.")
     
     # Source attribution
     st.subheader("Source Attribution")
     
-    source_attribution = cv_data.get("source_attribution", {})
+    # Initialize session state for source attribution if it doesn't exist
+    if 'source_attribution_content' not in st.session_state:
+        st.session_state.source_attribution_content = None
+        st.session_state.source_attribution_filename = None
+        st.session_state.source_attribution_mime = None
     
-    # Create source attribution report
-    source_report = "Source Attribution Report\n\n"
-    
-    for source, attribution in source_attribution.items():
-        source_report += f"Source: {source}\n"
-        source_report += f"Contributions: {attribution.get('matches_contributed', 0)}\n"
-        source_report += f"Sections: {', '.join(attribution.get('sections_used', []))}\n"
-        source_report += f"Average Score: {attribution.get('avg_relevance_score', 0.0):.2f}\n\n"
+    if st.button("📋 Generate Source Attribution", use_container_width=True):
+        source_attribution = cv_data.get("source_attribution", {})
         
-        source_report += "Sample Contributions:\n"
-        for contrib in attribution.get("sample_contributions", []):
-            source_report += f"- {contrib.get('text', '')}\n"
+        # Create source attribution report
+        source_report = "Source Attribution Report\n\n"
         
-        source_report += "\n---\n\n"
+        for source, attribution in source_attribution.items():
+            source_report += f"Source: {source}\n"
+            source_report += f"Contributions: {attribution.get('matches_contributed', 0)}\n"
+            source_report += f"Sections: {', '.join(attribution.get('sections_used', []))}\n"
+            source_report += f"Average Score: {attribution.get('avg_relevance_score', 0.0):.2f}\n\n"
+            
+            source_report += "Sample Contributions:\n"
+            for contrib in attribution.get("sample_contributions", []):
+                source_report += f"- {contrib.get('text', '')}\n"
+            
+            source_report += "\n---\n\n"
+        
+        # Store in session state
+        st.session_state.source_attribution_content = source_report
+        st.session_state.source_attribution_filename = "source_attribution.txt"
+        st.session_state.source_attribution_mime = "text/plain"
     
-    # Download button
-    st.download_button(
-        "📥 Download Source Attribution",
-        source_report,
-        file_name="source_attribution.txt",
-        mime="text/plain"
-    )
+    # Display download button if content is available
+    if st.session_state.source_attribution_content is not None:
+        st.download_button(
+            "📥 Download Source Attribution",
+            st.session_state.source_attribution_content,
+            file_name=st.session_state.source_attribution_filename,
+            mime=st.session_state.source_attribution_mime,
+            key="download_source_attribution_button"
+        )
+        
+        st.success("✅ Source attribution report generated successfully! Click the download button above.")
 
 def create_advanced_export_tab(cv_data: Dict[str, Any]):
     """Create advanced export tab."""
+    # Initialize session state for advanced exports if they don't exist
+    if 'all_data_content' not in st.session_state:
+        st.session_state.all_data_content = None
+        st.session_state.all_data_filename = None
+        st.session_state.all_data_mime = None
+    
+    if 'ats_content' not in st.session_state:
+        st.session_state.ats_content = None
+        st.session_state.ats_filename = None
+        st.session_state.ats_mime = None
+    
     st.markdown("""
     <p style="margin-bottom: 16px;">Configure advanced export options and formats.</p>
     """, unsafe_allow_html=True)
@@ -213,26 +287,43 @@ def create_advanced_export_tab(cv_data: Dict[str, Any]):
                 }
             }
             
-            # Download
-            st.download_button(
-                "📥 Download All Data",
-                json.dumps(all_data, indent=2),
-                file_name="cv_complete_data.json",
-                mime="application/json"
-            )
+            # Store in session state
+            st.session_state.all_data_content = json.dumps(all_data, indent=2)
+            st.session_state.all_data_filename = "cv_complete_data.json"
+            st.session_state.all_data_mime = "application/json"
     
     with custom_col2:
         if st.button("📊 Export for ATS", use_container_width=True):
             # Create ATS-friendly version
             ats_text = create_ats_friendly_cv(cv_data)
             
-            # Download
-            st.download_button(
-                "📥 Download ATS Version",
-                ats_text,
-                file_name="cv_ats_version.txt",
-                mime="text/plain"
-            )
+            # Store in session state
+            st.session_state.ats_content = ats_text
+            st.session_state.ats_filename = "cv_ats_version.txt"
+            st.session_state.ats_mime = "text/plain"
+    
+    # Display download buttons if content is available
+    if st.session_state.all_data_content is not None:
+        st.download_button(
+            "📥 Download All Data",
+            st.session_state.all_data_content,
+            file_name=st.session_state.all_data_filename,
+            mime=st.session_state.all_data_mime,
+            key="download_all_data_button"
+        )
+        
+        st.success("✅ Complete data export generated successfully! Click the download button above.")
+    
+    if st.session_state.ats_content is not None:
+        st.download_button(
+            "📥 Download ATS Version",
+            st.session_state.ats_content,
+            file_name=st.session_state.ats_filename,
+            mime=st.session_state.ats_mime,
+            key="download_ats_button"
+        )
+        
+        st.success("✅ ATS-friendly version generated successfully! Click the download button above.")
 
 def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
     """
@@ -244,53 +335,77 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         output_format: Output format (text, docx, pdf, json)
     """
     try:
-        # For now, create a simple text export since the exporter may not be fully implemented
-        if output_format == "text":
-            # Generate a simple text version of the CV
-            content = create_text_cv(cv_data)
+        # Create a CV exporter instance
+        exporter = CVExporter()
+        
+        # Use a temporary directory for output files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Generate output file path
+            if output_format == "text":
+                output_file = os.path.join(temp_dir, f"cv_{template_id}.txt")
+                mime_type = "text/plain"
+            elif output_format == "docx":
+                output_file = os.path.join(temp_dir, f"cv_{template_id}.docx")
+                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            elif output_format == "pdf":
+                output_file = os.path.join(temp_dir, f"cv_{template_id}.pdf")
+                mime_type = "application/pdf"
+            elif output_format == "json":
+                output_file = os.path.join(temp_dir, f"cv_{template_id}.json")
+                mime_type = "application/json"
+            else:
+                raise ValueError(f"Unsupported format: {output_format}")
             
-            # Download button
-            st.download_button(
-                "📥 Download Text CV",
-                content,
-                file_name=f"cv_{template_id}.txt",
-                mime="text/plain"
+            # Export the CV
+            result = exporter.export_cv(
+                cv_data=cv_data,
+                template_id=template_id,
+                output_format=output_format,
+                output_path=output_file
             )
             
-            st.success(f"✅ CV exported successfully in TEXT format!")
+            # Check if export was successful
+            if result["status"] != "success":
+                raise ValueError(f"Export failed: {result.get('error', 'Unknown error')}")
             
-        elif output_format == "json":
-            # Create a JSON version
-            content = json.dumps(cv_data, indent=2)
+            # Read the file content
+            if output_format in ["docx", "pdf"]:
+                # Binary content
+                with open(output_file, 'rb') as f:
+                    content = f.read()
+            else:
+                # Text content
+                if "content" in result:
+                    # Use content from result if available
+                    content = result["content"]
+                    if output_format == "json" and isinstance(content, dict):
+                        content = json.dumps(content, indent=2)
+                else:
+                    # Read from file
+                    with open(output_file, 'r') as f:
+                        content = f.read()
             
-            # Download button
-            st.download_button(
-                "📥 Download JSON CV",
-                content,
-                file_name=f"cv_{template_id}.json",
-                mime="application/json"
-            )
-            
-            st.success(f"✅ CV exported successfully in JSON format!")
-            
-        elif output_format == "docx" or output_format == "pdf":
-            # For now, create a text version with a message
-            content = create_text_cv(cv_data)
-            content += f"\n\nNote: This is a text version. {output_format.upper()} export will be available in the full implementation."
-            
-            # Download button
-            st.download_button(
-                f"📥 Download CV (Text Version)",
-                content,
-                file_name=f"cv_{template_id}.txt",
-                mime="text/plain"
-            )
-            
-            st.info(f"ℹ️ {output_format.upper()} export is coming soon. A text version has been provided instead.")
+            # Store in session state for download
+            st.session_state.export_content = content
+            st.session_state.export_filename = os.path.basename(output_file)
+            st.session_state.export_mime = mime_type
+            st.session_state.export_format = output_format
     
     except Exception as e:
         logger.error(f"Error exporting CV: {e}")
         st.error(f"❌ Export error: {str(e)}")
+        
+        # Fallback to text format if export fails
+        if output_format in ["docx", "pdf"]:
+            logger.info(f"Falling back to text format for {output_format}")
+            content = create_text_cv(cv_data)
+            content += f"\n\nNote: {output_format.upper()} export failed. This is a text version instead."
+            
+            # Store fallback in session state
+            st.session_state.export_content = content
+            st.session_state.export_filename = f"cv_{template_id}.txt"
+            st.session_state.export_mime = "text/plain"
+            st.session_state.export_format = "text (fallback)"
 
 def create_text_cv(cv_data: Dict[str, Any]) -> str:
     """
