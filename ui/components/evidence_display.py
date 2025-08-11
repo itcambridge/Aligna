@@ -353,52 +353,74 @@ def add_interactive_evidence_js():
     """Add JavaScript for interactive evidence components."""
     st.markdown("""
     <script>
-        // Wait for the DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'evidence-overlay';
-            document.body.appendChild(overlay);
+        // Function to initialize evidence components
+        function initEvidenceComponents() {
+            console.log("Initializing evidence components");
+            
+            // Create overlay if it doesn't exist
+            let overlay = document.querySelector('.evidence-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'evidence-overlay';
+                document.body.appendChild(overlay);
+            }
             
             // Handle citation marker clicks
-            document.addEventListener('click', function(event) {
-                if (event.target.classList.contains('citation-marker')) {
-                    const citationId = event.target.getAttribute('data-citations');
+            document.querySelectorAll('.citation-marker').forEach(marker => {
+                marker.onclick = function(event) {
+                    const citationId = this.getAttribute('data-citations');
+                    console.log("Citation clicked:", citationId);
                     showEvidencePanel(citationId);
-                }
+                    event.stopPropagation();
+                };
             });
             
             // Handle close panel button clicks
-            document.addEventListener('click', function(event) {
-                if (event.target.classList.contains('close-panel')) {
+            document.querySelectorAll('.close-panel').forEach(button => {
+                button.onclick = function() {
                     hideEvidencePanel();
-                }
+                };
             });
             
             // Handle overlay clicks
-            overlay.addEventListener('click', function() {
+            overlay.onclick = function() {
                 hideEvidencePanel();
+            };
+        }
+        
+        // Show evidence panel
+        function showEvidencePanel(citationId) {
+            // Get the panel
+            const panel = document.querySelector(`.evidence-panel[data-citation="${citationId}"]`);
+            if (panel) {
+                console.log("Showing panel:", panel);
+                panel.style.display = 'block';
+                document.querySelector('.evidence-overlay').style.display = 'block';
+            } else {
+                console.log("Panel not found for citation:", citationId);
+                // Create a simple alert if panel not found
+                alert("Evidence details: " + citationId);
+            }
+        }
+        
+        // Hide evidence panel
+        function hideEvidencePanel() {
+            document.querySelectorAll('.evidence-panel').forEach(panel => {
+                panel.style.display = 'none';
             });
-            
-            // Show evidence panel
-            function showEvidencePanel(citationId) {
-                // Get the panel
-                const panel = document.querySelector(`.evidence-panel[data-citation="${citationId}"]`);
-                if (panel) {
-                    panel.style.display = 'block';
-                    overlay.style.display = 'block';
-                }
-            }
-            
-            // Hide evidence panel
-            function hideEvidencePanel() {
-                const panels = document.querySelectorAll('.evidence-panel');
-                panels.forEach(panel => {
-                    panel.style.display = 'none';
-                });
-                overlay.style.display = 'none';
-            }
+            document.querySelector('.evidence-overlay').style.display = 'none';
+        }
+        
+        // Initialize on load and also when Streamlit reloads
+        document.addEventListener('DOMContentLoaded', initEvidenceComponents);
+        
+        // For Streamlit - need to reinitialize when the DOM updates
+        const observer = new MutationObserver(function(mutations) {
+            initEvidenceComponents();
         });
+        
+        // Start observing the document body for DOM changes
+        observer.observe(document.body, { childList: true, subtree: true });
     </script>
     """, unsafe_allow_html=True)
 
@@ -469,61 +491,127 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
     Args:
         cv_data: CV data with sections and evidence
     """
-    # Contact information
-    contact_info = cv_data.get("contact_info", {})
-    st.markdown(f"""
-    <div style="text-align: center; margin-bottom: 32px;">
-        <h2 style="margin-bottom: 8px;">{contact_info.get("name", "")}</h2>
-        <p style="color: #6b7280;">
-            {contact_info.get("email", "")} | {contact_info.get("phone", "")} | {contact_info.get("location", "")}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Add CSS and JavaScript for interactive components
+    add_interactive_evidence_css()
+    add_interactive_evidence_js()
     
-    # Summary section
-    summary = cv_data.get("summary", {})
-    st.markdown("### Professional Summary")
-    st.markdown(summary.get("content", ""))
-    
-    # Experience section with interactive bullets
-    experience = cv_data.get("experience", {})
-    experience_bullets = []
-    
-    # Extract bullets from experience content
-    experience_content = experience.get("content", "")
-    bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
-    experience_texts = re.findall(bullet_pattern, experience_content, re.DOTALL)
-    
-    # Create bullet objects
-    for i, text in enumerate(experience_texts):
-        # Get citations for this bullet (simplified - in real implementation, would match to actual evidence)
-        citations = []
-        if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
-            matches = cv_data["match_evidence"]["matches"]
-            if isinstance(matches, list) and i < len(matches):
-                citations = [matches[i]]
+    # Check if we have the generated CV data
+    if "generated_cv" in cv_data:
+        # Use the generated CV structure
+        generated_cv = cv_data.get("generated_cv", {})
         
-        # Create bullet object
-        bullet = {
-            "text": text.strip(),
-            "citations": citations,
-            "confidence": 0.8 if citations else 0.3,  # Simplified
-            "risk_flags": []  # Simplified
-        }
-        experience_bullets.append(bullet)
-    
-    # Render interactive experience section
-    render_interactive_cv_section("Work Experience", experience_bullets)
-    
-    # Skills section
-    skills = cv_data.get("skills", {})
-    st.markdown("### Skills")
-    st.markdown(skills.get("content", ""))
-    
-    # Education section
-    education = cv_data.get("education", {})
-    st.markdown("### Education")
-    st.markdown(education.get("content", ""))
+        # Contact information
+        contact_info = generated_cv.get("contact_info", {})
+        st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="margin-bottom: 8px;">{contact_info.get("name", "")}</h2>
+            <p style="color: #6b7280;">
+                {contact_info.get("email", "")} | {contact_info.get("phone", "")} | {contact_info.get("location", "")}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Summary section
+        summary = generated_cv.get("summary", {})
+        if summary and summary.get("content"):
+            st.markdown("### Professional Summary")
+            st.markdown(summary.get("content", ""))
+        
+        # Experience section with interactive bullets
+        sections = generated_cv.get("sections", [])
+        for section in sections:
+            section_title = section.get("title", "")
+            bullets = section.get("bullets", [])
+            
+            if section_title and bullets:
+                # Convert to the format expected by render_interactive_cv_section
+                interactive_bullets = []
+                for bullet in bullets:
+                    interactive_bullet = {
+                        "text": bullet.get("text", ""),
+                        "citations": bullet.get("citations", []),
+                        "confidence": bullet.get("confidence", 0.7),
+                        "risk_flags": bullet.get("risk_flags", [])
+                    }
+                    interactive_bullets.append(interactive_bullet)
+                
+                # Render the section
+                render_interactive_cv_section(section_title, interactive_bullets)
+    else:
+        # Fallback to the simple CV structure
+        # Contact information
+        contact_info = cv_data.get("contact_info", {})
+        st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="margin-bottom: 8px;">{contact_info.get("name", "")}</h2>
+            <p style="color: #6b7280;">
+                {contact_info.get("email", "")} | {contact_info.get("phone", "")} | {contact_info.get("location", "")}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Summary section
+        summary = cv_data.get("summary", {})
+        if summary and summary.get("content"):
+            st.markdown("### Professional Summary")
+            st.markdown(summary.get("content", ""))
+        
+        # Experience section with interactive bullets
+        experience = cv_data.get("experience", {})
+        if experience and experience.get("content"):
+            experience_bullets = []
+            
+            # Extract bullets from experience content
+            experience_content = experience.get("content", "")
+            bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+            experience_texts = re.findall(bullet_pattern, experience_content, re.DOTALL)
+            
+            # Get all available matches
+            all_matches = []
+            if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
+                all_matches = cv_data["match_evidence"]["matches"]
+            
+            # Create bullet objects
+            for i, text in enumerate(experience_texts):
+                # Find the best matching citation for this bullet
+                best_match = None
+                best_score = 0
+                
+                for match in all_matches:
+                    match_text = match.get("text", "")
+                    if text.strip() in match_text or match_text in text.strip():
+                        score = match.get("score", 0)
+                        if score > best_score:
+                            best_match = match
+                            best_score = score
+                
+                # Create bullet object
+                citations = [best_match] if best_match else []
+                confidence = best_score if best_match else 0.3
+                risk_flags = ["no_direct_evidence"] if not best_match else []
+                
+                bullet = {
+                    "text": text.strip(),
+                    "citations": citations,
+                    "confidence": confidence,
+                    "risk_flags": risk_flags
+                }
+                experience_bullets.append(bullet)
+            
+            # Render interactive experience section
+            render_interactive_cv_section("Work Experience", experience_bullets)
+        
+        # Skills section
+        skills = cv_data.get("skills", {})
+        if skills and skills.get("content"):
+            st.markdown("### Skills")
+            st.markdown(skills.get("content", ""))
+        
+        # Education section
+        education = cv_data.get("education", {})
+        if education and education.get("content"):
+            st.markdown("### Education")
+            st.markdown(education.get("content", ""))
     
     # Evidence summary
     st.markdown("### Evidence Summary")
@@ -531,9 +619,11 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
     # Get all citations
     all_citations = []
     if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
-        matches = cv_data["match_evidence"]["matches"]
-        if isinstance(matches, list):
-            all_citations = matches
+        all_citations = cv_data["match_evidence"]["matches"]
+    elif "cv_matching" in cv_data and "matches" in cv_data["cv_matching"]:
+        all_citations = cv_data["cv_matching"]["matches"]
+    elif "matches" in cv_data:
+        all_citations = cv_data["matches"]
     
     # Group citations by source
     citations_by_source = {}
@@ -544,9 +634,12 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
         citations_by_source[source].append(citation)
     
     # Display citation summary
-    for source, citations in citations_by_source.items():
-        with st.expander(f"📄 {source} ({len(citations)} citations)"):
-            for i, citation in enumerate(citations):
-                st.markdown(f"**{i+1}.** {citation.get('text', '')}")
-                st.markdown(f"*Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}*")
-                st.markdown("---")
+    if citations_by_source:
+        for source, citations in citations_by_source.items():
+            with st.expander(f"📄 {source} ({len(citations)} citations)"):
+                for i, citation in enumerate(citations):
+                    st.markdown(f"**{i+1}.** {citation.get('text', '')}")
+                    st.markdown(f"*Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}*")
+                    st.markdown("---")
+    else:
+        st.info("No evidence citations available for this CV.")

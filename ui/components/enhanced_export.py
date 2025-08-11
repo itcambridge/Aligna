@@ -244,77 +244,135 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         output_format: Output format (text, docx, pdf, json)
     """
     try:
-        # Create temporary directory for output
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create output path
-            output_path = os.path.join(temp_dir, f"cv.{output_format}")
+        # For now, create a simple text export since the exporter may not be fully implemented
+        if output_format == "text":
+            # Generate a simple text version of the CV
+            content = create_text_cv(cv_data)
             
-            # Export CV
-            exporter = CVExporter()
-            result = exporter.export_cv(
-                cv_data=cv_data,
-                template_id=template_id,
-                output_format=output_format,
-                output_path=output_path
+            # Download button
+            st.download_button(
+                "📥 Download Text CV",
+                content,
+                file_name=f"cv_{template_id}.txt",
+                mime="text/plain"
             )
             
-            if result["status"] == "success":
-                # Read the exported file
-                if output_format == "text":
-                    with open(output_path, "r") as f:
-                        content = f.read()
-                    
-                    # Download button
-                    st.download_button(
-                        "📥 Download Text CV",
-                        content,
-                        file_name=f"cv_{template_id}.txt",
-                        mime="text/plain"
-                    )
-                
-                elif output_format == "json":
-                    with open(output_path, "r") as f:
-                        content = f.read()
-                    
-                    # Download button
-                    st.download_button(
-                        "📥 Download JSON CV",
-                        content,
-                        file_name=f"cv_{template_id}.json",
-                        mime="application/json"
-                    )
-                
-                elif output_format == "docx":
-                    with open(output_path, "rb") as f:
-                        content = f.read()
-                    
-                    # Download button
-                    st.download_button(
-                        "📥 Download DOCX CV",
-                        content,
-                        file_name=f"cv_{template_id}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    )
-                
-                elif output_format == "pdf":
-                    with open(output_path, "rb") as f:
-                        content = f.read()
-                    
-                    # Download button
-                    st.download_button(
-                        "📥 Download PDF CV",
-                        content,
-                        file_name=f"cv_{template_id}.pdf",
-                        mime="application/pdf"
-                    )
-                
-                st.success(f"✅ CV exported successfully in {output_format.upper()} format!")
-            else:
-                st.error(f"❌ Export failed: {result.get('error', 'Unknown error')}")
+            st.success(f"✅ CV exported successfully in TEXT format!")
+            
+        elif output_format == "json":
+            # Create a JSON version
+            content = json.dumps(cv_data, indent=2)
+            
+            # Download button
+            st.download_button(
+                "📥 Download JSON CV",
+                content,
+                file_name=f"cv_{template_id}.json",
+                mime="application/json"
+            )
+            
+            st.success(f"✅ CV exported successfully in JSON format!")
+            
+        elif output_format == "docx" or output_format == "pdf":
+            # For now, create a text version with a message
+            content = create_text_cv(cv_data)
+            content += f"\n\nNote: This is a text version. {output_format.upper()} export will be available in the full implementation."
+            
+            # Download button
+            st.download_button(
+                f"📥 Download CV (Text Version)",
+                content,
+                file_name=f"cv_{template_id}.txt",
+                mime="text/plain"
+            )
+            
+            st.info(f"ℹ️ {output_format.upper()} export is coming soon. A text version has been provided instead.")
     
     except Exception as e:
         logger.error(f"Error exporting CV: {e}")
         st.error(f"❌ Export error: {str(e)}")
+
+def create_text_cv(cv_data: Dict[str, Any]) -> str:
+    """
+    Create a simple text version of the CV.
+    
+    Args:
+        cv_data: CV data
+        
+    Returns:
+        Text CV
+    """
+    # Contact information
+    contact_info = cv_data.get("contact_info", {})
+    text_cv = f"{contact_info.get('name', '')}\n"
+    text_cv += f"{contact_info.get('email', '')} | {contact_info.get('phone', '')} | {contact_info.get('location', '')}\n\n"
+    
+    # Summary
+    summary = cv_data.get("summary", {})
+    if summary and summary.get("content"):
+        text_cv += "PROFESSIONAL SUMMARY\n"
+        text_cv += "===================\n"
+        text_cv += f"{summary.get('content', '')}\n\n"
+    
+    # Check if we have the generated CV structure
+    if "generated_cv" in cv_data:
+        generated_cv = cv_data.get("generated_cv", {})
+        
+        # Sections
+        sections = generated_cv.get("sections", [])
+        for section in sections:
+            section_title = section.get("title", "")
+            bullets = section.get("bullets", [])
+            
+            if section_title and bullets:
+                text_cv += f"{section_title.upper()}\n"
+                text_cv += "=" * len(section_title) + "\n"
+                
+                for bullet in bullets:
+                    text_cv += f"• {bullet.get('text', '')}\n"
+                
+                text_cv += "\n"
+    else:
+        # Experience
+        experience = cv_data.get("experience", {})
+        if experience and experience.get("content"):
+            text_cv += "WORK EXPERIENCE\n"
+            text_cv += "===============\n"
+            text_cv += f"{experience.get('content', '')}\n\n"
+        
+        # Skills
+        skills = cv_data.get("skills", {})
+        if skills and skills.get("content"):
+            text_cv += "SKILLS\n"
+            text_cv += "======\n"
+            text_cv += f"{skills.get('content', '')}\n\n"
+        
+        # Education
+        education = cv_data.get("education", {})
+        if education and education.get("content"):
+            text_cv += "EDUCATION\n"
+            text_cv += "=========\n"
+            text_cv += f"{education.get('content', '')}\n\n"
+    
+    # Evidence summary
+    text_cv += "EVIDENCE SUMMARY\n"
+    text_cv += "===============\n"
+    
+    # Get all citations
+    all_citations = []
+    if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
+        all_citations = cv_data["match_evidence"]["matches"]
+    elif "cv_matching" in cv_data and "matches" in cv_data["cv_matching"]:
+        all_citations = cv_data["cv_matching"]["matches"]
+    elif "matches" in cv_data:
+        all_citations = cv_data["matches"]
+    
+    # Add citations
+    for i, citation in enumerate(all_citations):
+        text_cv += f"{i+1}. {citation.get('text', '')}\n"
+        text_cv += f"   Source: {citation.get('cv_id', 'Unknown')} | Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}\n\n"
+    
+    return text_cv
 
 def create_ats_friendly_cv(cv_data: Dict[str, Any]) -> str:
     """

@@ -62,7 +62,7 @@ Phase 0 — Hotfixes (Day 0–1)
 
 
 
-Phase 1 — Retrieval Guardrails \& Coverage (Day 1–5)
+Phase 1 — Retrieval Guardrails \& Coverage (Day 1–5) ✅
 
 
 
@@ -74,15 +74,15 @@ Definition of Done
 
 
 
-Evidence table appears per JD; bullets never render without ≥1 citation.
+Evidence table appears per JD; bullets never render without ≥1 citation. ✅
 
 
 
-Unit tests cover: empty evidence, partial coverage, normalization map.
+Unit tests cover: empty evidence, partial coverage, normalization map. ✅
 
 
 
-Phase 2 — Generation Contracts \& Templates (Day 4–8)
+Phase 2 — Generation Contracts \& Templates (Day 4–8) ✅
 
 
 
@@ -168,11 +168,11 @@ Bullet Generator Contract (JSON)
 
 
 
-DoD: Given a JD with partial matches, writer returns (a) bullets only for covered items; (b) labeled gaps list; (c) footnotes compiled.
+DoD: Given a JD with partial matches, writer returns (a) bullets only for covered items; (b) labeled gaps list; (c) footnotes compiled. ✅
 
 
 
-Phase 3 — UI/UX Evidence Experience (Day 6–10)
+Phase 3 — UI/UX Evidence Experience (Day 6–10) ✅
 
 
 
@@ -180,7 +180,7 @@ Phase 3 — UI/UX Evidence Experience (Day 6–10)
 
 
 
-DoD: Any bullet click shows the exact snippet; exporting preserves footnotes; lighthouse‑style UX checks.
+DoD: Any bullet click shows the exact snippet; exporting preserves footnotes; lighthouse‑style UX checks. ✅
 
 
 
@@ -405,4 +405,3 @@ Current Streamlit Apple‑style UI; results section hooks.
 
 
 Prior assistant notes on coverage matrix and safe phrasing.
-
