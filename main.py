@@ -26,7 +26,7 @@ from modules.job_search.job_searcher import JobSearcher
 from agents.job_breakdown.job_analyzer import JobAnalyzer
 from agents.cv_matcher.cv_matcher import CVMatcher
 from agents.cv_writer.cv_writer import CVWriter
-from agents.evidence_validator import EvidenceValidator
+from agents.evidence_validator.evidence_validator import EvidenceValidator
 
 class GroundedCVGenerator:
     """Main orchestrator for the grounded CV generation system."""
@@ -120,7 +120,7 @@ class GroundedCVGenerator:
             
             # Analyze job requirements
             job_description = job_search_result.get("job_description", "")
-            job_requirements = self.job_analyzer.analyze_job(job_description)
+            job_requirements = self.job_analyzer.analyze_job_description(job_description)
             
             result = {
                 "status": "success",
@@ -338,7 +338,7 @@ class GroundedCVGenerator:
         
         try:
             # Step 1: Analyze job requirements
-            job_requirements = self.job_analyzer.analyze_job(job_description)
+            job_requirements = self.job_analyzer.analyze_job_description(job_description)
             
             # Step 2: Validate evidence coverage
             evidence_validation = self.evidence_validator.validate_evidence(
