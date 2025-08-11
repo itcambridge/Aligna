@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bullet Generator Contract",
+  "description": "Ensures every generated bullet has citations and risk flags",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "requirement": {
+          "type": "string",
+          "description": "The job requirement being addressed"
+        },
+        "evidence_snippets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Evidence snippets to support the bullet"
+        },
+        "allowed_claims_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to only make claims supported by evidence"
+        },
+        "style_preference": {
+          "type": "string",
+          "enum": ["action", "impact", "technical", "leadership"],
+          "default": "action",
+          "description": "Preferred bullet point style"
+        }
+      },
+      "required": ["requirement", "evidence_snippets"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "bullet": {
+          "type": "string",
+          "description": "The generated bullet point text"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "cv_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "chunk_index": {
+                "type": "integer"
+              },
+              "section": {
+                "type": "string"
+              },
+              "snippet": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["cv_id", "chunk_index", "section", "snippet", "score"]
+          },
+          "description": "Citations supporting this bullet"
+        },
+        "risk_flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "metric_inferred",
+              "timeframe_inferred", 
+              "scope_inferred",
+              "role_inferred",
+              "technology_inferred",
+              "no_direct_evidence",
+              "low_confidence_match"
+            ]
+          },
+          "description": "Risk flags indicating potential issues"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence score for this bullet"
+        },
+        "evidence_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Percentage of bullet content supported by evidence"
+        }
+      },
+      "required": ["bullet", "citations", "risk_flags", "confidence", "evidence_coverage"]
+    }
+  },
+  "required": ["input", "output"]
+}

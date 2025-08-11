@@ -482,6 +482,173 @@ st.markdown("""
         font-family: 'SF Mono', Monaco, monospace;
     }
     
+    /* Evidence Validation Section */
+    .evidence-section {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 32px;
+        margin: 32px 0;
+        border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+    
+    .evidence-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    
+    .evidence-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+    
+    .evidence-title {
+        font-size: 20px;
+        font-weight: 500;
+        color: #111827;
+    }
+    
+    .coverage-matrix {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+    }
+    
+    .coverage-item {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 16px;
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .coverage-item.covered {
+        border-left-color: #10b981;
+    }
+    
+    .coverage-item.partial {
+        border-left-color: #f59e0b;
+    }
+    
+    .coverage-item.uncovered {
+        border-left-color: #ef4444;
+    }
+    
+    .coverage-status {
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .coverage-status.covered {
+        color: #10b981;
+    }
+    
+    .coverage-status.partial {
+        color: #f59e0b;
+    }
+    
+    .coverage-status.uncovered {
+        color: #ef4444;
+    }
+    
+    .coverage-text {
+        font-size: 14px;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+    
+    .coverage-confidence {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    
+    /* Gap Analysis */
+    .gap-analysis {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 24px 0;
+    }
+    
+    .gap-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        color: #dc2626;
+        font-weight: 500;
+    }
+    
+    .gap-item {
+        background: white;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 8px 0;
+        border-left: 3px solid #dc2626;
+    }
+    
+    .gap-requirement {
+        font-weight: 500;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+    
+    .gap-recommendation {
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    /* Risk Assessment */
+    .risk-assessment {
+        background: #fffbeb;
+        border: 1px solid #fed7aa;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 24px 0;
+    }
+    
+    .risk-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        color: #d97706;
+        font-weight: 500;
+    }
+    
+    .risk-level {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .risk-level.low {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .risk-level.medium {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    
+    .risk-level.high {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
     /* Welcome Section */
     .welcome-section {
         max-width: 600px;
@@ -602,19 +769,19 @@ def main():
         """, unsafe_allow_html=True)
         
         try:
-            with st.spinner("🔍 Searching across all your CVs..."):
+            with st.spinner("🔍 Validating evidence coverage..."):
                 result = generator.generate_cv_from_knowledge_base(user_id, job_description)
                 
                 if result["status"] == "success":
-                    st.success(f"✅ Found relevant experience from {len(result['matches_summary']['cv_sources_used'])} CVs")
+                    st.success(f"✅ Evidence validation complete - {result['evidence_validation']['coverage_matrix']['summary']['overall_coverage_rate']:.1%} coverage")
                 else:
                     raise Exception(f"Knowledge base generation failed: {result.get('error')}")
             
             with st.spinner("📋 Analyzing job requirements..."):
                 st.success("✅ Analyzed job requirements and matched against your experience")
             
-            with st.spinner("✍️ Generating comprehensive CV..."):
-                st.success("✅ Generated grounded CV with evidence from multiple CVs")
+            with st.spinner("✍️ Generating grounded CV..."):
+                st.success("✅ Generated grounded CV with evidence validation")
             
             st.success("✅ Knowledge base processing complete!")
             
@@ -624,7 +791,7 @@ def main():
                 <div class="results-header">
                     <div class="success-badge">✅ Generation Complete</div>
                     <h2 class="results-title">Your CV is ready</h2>
-                    <p class="results-subtitle">Generated from your knowledge base with high relevance matching</p>
+                    <p class="results-subtitle">Generated from your knowledge base with evidence validation</p>
                 </div>
                 
                 <div class="metrics-grid">
@@ -674,6 +841,108 @@ def main():
                 """, unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Evidence Validation Section
+            evidence_validation = result.get('evidence_validation', {})
+            if evidence_validation:
+                st.markdown("""
+                <div class="evidence-section">
+                    <div class="evidence-header">
+                        <div class="evidence-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white;">🔍</div>
+                        <h3 class="evidence-title">Evidence Validation Results</h3>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Coverage Matrix
+                coverage_matrix = evidence_validation.get('coverage_matrix', {})
+                summary = coverage_matrix.get('summary', {})
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(
+                        "Overall Coverage",
+                        f"{summary.get('overall_coverage_rate', 0):.1%}",
+                        f"{summary.get('covered_requirements', 0)}/{summary.get('total_requirements', 0)} requirements"
+                    )
+                
+                with col2:
+                    st.metric(
+                        "Average Confidence",
+                        f"{summary.get('average_confidence', 0):.1%}",
+                        "Evidence quality score"
+                    )
+                
+                with col3:
+                    st.metric(
+                        "Critical Gaps",
+                        len(summary.get('critical_gaps', [])),
+                        "Required skills missing"
+                    )
+                
+                # Detailed Coverage Matrix
+                st.subheader("📋 Requirement Coverage Matrix")
+                detailed_matrix = coverage_matrix.get('detailed_matrix', [])
+                
+                for req in detailed_matrix:
+                    status_class = "covered" if req.get('covered') else "partial" if req.get('confidence', 0) > 0.3 else "uncovered"
+                    status_text = "Covered" if req.get('covered') else "Partial" if req.get('confidence', 0) > 0.3 else "Uncovered"
+                    
+                    with st.expander(f"{status_text}: {req.get('text', '')[:50]}..."):
+                        col1, col2 = st.columns([2, 1])
+                        with col1:
+                            st.write(f"**Category:** {req.get('category', '').replace('_', ' ').title()}")
+                            st.write(f"**Confidence:** {req.get('confidence', 0):.1%}")
+                            st.write(f"**Evidence Count:** {req.get('evidence_count', 0)}")
+                        
+                        with col2:
+                            if req.get('evidence'):
+                                st.write("**Sample Evidence:**")
+                                for i, evidence in enumerate(req.get('evidence', [])[:2]):
+                                    st.write(f"{i+1}. {evidence.get('snippet', '')[:100]}...")
+                
+                # Gap Analysis
+                gaps = coverage_matrix.get('gaps', [])
+                if gaps:
+                    st.markdown("""
+                    <div class="gap-analysis">
+                        <div class="gap-header">
+                            ⚠️ Gaps Identified
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    for gap in gaps[:5]:  # Show top 5 gaps
+                        st.markdown(f"""
+                        <div class="gap-item">
+                            <div class="gap-requirement">{gap.get('requirement', '')}</div>
+                            <div class="gap-recommendation">{gap.get('recommendations', [''])[0] if gap.get('recommendations') else 'No specific recommendation available'}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Risk Assessment
+                hallucination_risk = evidence_validation.get('hallucination_risk', {})
+                if hallucination_risk:
+                    risk_level = hallucination_risk.get('risk_level', 'low')
+                    risk_color = {
+                        'low': '#10b981',
+                        'medium': '#f59e0b', 
+                        'high': '#ef4444'
+                    }.get(risk_level, '#6b7280')
+                    
+                    st.markdown(f"""
+                    <div class="risk-assessment">
+                        <div class="gap-header" style="color: {risk_color};">
+                            🛡️ Hallucination Risk Assessment
+                        </div>
+                        <div class="risk-level {risk_level}">{risk_level.upper()} RISK</div>
+                        <p style="margin-top: 12px; color: #6b7280;">
+                            {hallucination_risk.get('recommendations', [''])[0] if hallucination_risk.get('recommendations') else 'Risk assessment complete'}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
             
             # Source attribution
             st.markdown("### 📊 Experience Sources")

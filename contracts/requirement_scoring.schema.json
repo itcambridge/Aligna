@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Requirement Scoring Record",
+  "description": "Tracks evidence coverage and confidence for each job requirement",
+  "type": "object",
+  "properties": {
+    "req_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this requirement"
+    },
+    "text": {
+      "type": "string",
+      "description": "The job requirement text"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["required_skill", "preferred_skill", "experience", "qualification", "responsibility"],
+      "description": "Category of the requirement"
+    },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "semantic_top1": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Semantic similarity score of top match"
+        },
+        "avg_top3": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Average semantic similarity of top 3 matches"
+        },
+        "keyword_overlap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Keyword overlap ratio"
+        },
+        "years_evidence": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Years of experience evidenced"
+        },
+        "recency_years": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Years since most recent evidence"
+        },
+        "evidence_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of evidence snippets found"
+        }
+      },
+      "required": ["semantic_top1", "avg_top3", "keyword_overlap", "evidence_count"]
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "covered": {
+          "type": "boolean",
+          "description": "Whether requirement is covered by evidence"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence score for coverage decision"
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of specific gaps or missing aspects"
+        },
+        "closest_evidence": {
+          "type": "string",
+          "description": "Closest related evidence when not fully covered"
+        }
+      },
+      "required": ["covered", "confidence"]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cv_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chunk_index": {
+            "type": "integer"
+          },
+          "section": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer"
+          },
+          "end": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": ["cv_id", "chunk_index", "section", "snippet", "score"]
+      },
+      "description": "Evidence snippets supporting this requirement"
+    }
+  },
+  "required": ["req_id", "text", "category", "signals", "decision", "evidence"]
+}
