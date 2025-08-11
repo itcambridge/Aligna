@@ -8,6 +8,10 @@ import logging
 import json
 import uuid
 
+# Import UI components
+from ui.components.evidence_display import render_interactive_cv_section, render_cv_with_evidence
+from ui.components.enhanced_export import create_export_section
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1149,6 +1153,18 @@ def show_results_section(result: dict):
     if evidence_validation:
         show_evidence_validation_section(evidence_validation)
     
+    # Interactive CV with Evidence
+    st.header("📄 Generated CV with Interactive Evidence")
+    st.markdown("""
+    <div style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius: 24px; 
+         padding: 32px; margin: 32px 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
+    """, unsafe_allow_html=True)
+    
+    # Use the new interactive CV renderer
+    render_cv_with_evidence(result)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
     # Source attribution
     st.markdown("### 📊 Experience Sources")
     for cv_id, attribution in result['source_attribution'].items():
@@ -1159,8 +1175,8 @@ def show_results_section(result: dict):
             for contrib in attribution['sample_contributions']:
                 st.write(f"- {contrib['text']} (Score: {contrib['score']:.2f})")
     
-    # Download Section
-    show_download_section(result)
+    # Enhanced Export Section
+    create_export_section(result, evidence_validation)
 
 def show_evidence_validation_section(evidence_validation: dict):
     """Show evidence validation section."""

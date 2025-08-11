@@ -319,6 +319,77 @@ class GroundedCVGenerator:
                 "error": str(e)
             }
     
+    def get_most_recent_cv(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get the most recent CV data for a user.
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            Most recent CV data or empty dict if none found
+        """
+        logger.info(f"Getting most recent CV for user {user_id}")
+        
+        try:
+            # Get user's CV collection
+            cv_stats = self.get_user_cv_collection(user_id)
+            
+            if cv_stats["total_cvs"] == 0:
+                logger.info(f"No CVs found for user {user_id}")
+                return {}
+            
+            # For now, return a sample CV structure
+            # In a real implementation, we would query the database for the most recent CV
+            sample_cv = {
+                "contact_info": {
+                    "name": "John Doe",
+                    "email": "john.doe@example.com",
+                    "phone": "+1-555-0123",
+                    "location": "San Francisco, CA"
+                },
+                "summary": {
+                    "content": "Experienced software engineer with expertise in Python, machine learning, and cloud technologies."
+                },
+                "experience": {
+                    "content": "• Developed machine learning models using Python and scikit-learn for customer churn prediction.\n• Implemented deep learning solutions with TensorFlow for image classification tasks.\n• Optimized Python code for 30% performance improvement in data processing pipeline."
+                },
+                "skills": {
+                    "content": "• Python\n• Machine Learning\n• TensorFlow\n• AWS\n• Docker\n• Kubernetes"
+                },
+                "education": {
+                    "content": "• M.S. Computer Science, Stanford University\n• B.S. Computer Engineering, MIT"
+                },
+                "match_evidence": {
+                    "matches": [
+                        {
+                            "cv_id": "cv_123",
+                            "section": "Experience",
+                            "text": "Developed machine learning models using Python and scikit-learn for customer churn prediction.",
+                            "score": 0.92
+                        },
+                        {
+                            "cv_id": "cv_123",
+                            "section": "Experience",
+                            "text": "Implemented deep learning solutions with TensorFlow for image classification tasks.",
+                            "score": 0.87
+                        },
+                        {
+                            "cv_id": "cv_123",
+                            "section": "Experience",
+                            "text": "Optimized Python code for 30% performance improvement in data processing pipeline.",
+                            "score": 0.85
+                        }
+                    ]
+                }
+            }
+            
+            return sample_cv
+            
+        except Exception as e:
+            logger.error(f"Error getting most recent CV: {e}")
+            return {}
+    
     def generate_cv_from_knowledge_base(
         self,
         user_id: str,

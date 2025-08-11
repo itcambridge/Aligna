@@ -1,0 +1,552 @@
+"""
+Interactive evidence display components for Streamlit.
+"""
+
+import streamlit as st
+import re
+from typing import Dict, List, Any, Optional
+import json
+import uuid
+
+def add_citation_markers(text: str, citations: List[Dict[str, Any]], citation_style: str = "superscript") -> str:
+    """
+    Add citation markers to text.
+    
+    Args:
+        text: Text to add citations to
+        citations: List of citation objects
+        citation_style: Style of citation markers (superscript, bracket, footnote)
+        
+    Returns:
+        Text with citation markers
+    """
+    if not citations:
+        return text
+    
+    # Create a unique ID for this set of citations
+    citation_id = str(uuid.uuid4())[:8]
+    
+    # Add citation marker at the end of the text
+    if citation_style == "superscript":
+        marker = f'<sup class="citation-marker" data-citations="{citation_id}">📝</sup>'
+    elif citation_style == "bracket":
+        marker = f'<span class="citation-marker" data-citations="{citation_id}">[📝]</span>'
+    elif citation_style == "footnote":
+        marker = f'<sup class="citation-marker" data-citations="{citation_id}">[{len(citations)}]</sup>'
+    else:
+        marker = f'<span class="citation-marker" data-citations="{citation_id}">📝</span>'
+    
+    # Store citations in session state for retrieval by JavaScript
+    if "citations" not in st.session_state:
+        st.session_state.citations = {}
+    
+    st.session_state.citations[citation_id] = citations
+    
+    # Add marker to the end of the text
+    return f'{text} {marker}'
+
+def create_interactive_bullet(
+    bullet_text: str,
+    citations: List[Dict[str, Any]],
+    confidence: float,
+    risk_flags: List[str],
+    bullet_id: Optional[str] = None
+) -> str:
+    """
+    Create an interactive bullet point with citation markers and risk indicators.
+    
+    Args:
+        bullet_text: The bullet point text
+        citations: List of citation objects
+        confidence: Confidence score (0-1)
+        risk_flags: List of risk flag strings
+        bullet_id: Optional bullet ID
+        
+    Returns:
+        HTML for the interactive bullet
+    """
+    # Generate ID if not provided
+    if not bullet_id:
+        bullet_id = f"bullet_{str(uuid.uuid4())[:8]}"
+    
+    # Determine confidence class
+    if confidence >= 0.8:
+        confidence_class = "high-confidence"
+    elif confidence >= 0.5:
+        confidence_class = "medium-confidence"
+    else:
+        confidence_class = "low-confidence"
+    
+    # Add citation markers
+    text_with_citations = add_citation_markers(bullet_text, citations)
+    
+    # Add risk indicators if any
+    risk_indicators = ""
+    if risk_flags:
+        risk_tooltip = ", ".join(risk_flags)
+        risk_indicators = f'<span class="risk-indicator" title="{risk_tooltip}">⚠️</span>'
+    
+    # Create the interactive bullet HTML
+    bullet_html = f"""
+    <div class="interactive-bullet {confidence_class}" id="{bullet_id}">
+        <div class="bullet-content">
+            <span class="bullet-text">{text_with_citations}</span>
+            {risk_indicators}
+        </div>
+        <div class="bullet-confidence" title="Confidence: {confidence:.0%}">
+            <div class="confidence-bar" style="width: {confidence * 100}%;"></div>
+        </div>
+    </div>
+    """
+    
+    return bullet_html
+
+def create_evidence_panel(
+    bullet_id: str,
+    citations: List[Dict[str, Any]],
+    panel_id: Optional[str] = None
+) -> str:
+    """
+    Create an evidence panel for a bullet point.
+    
+    Args:
+        bullet_id: ID of the bullet point
+        citations: List of citation objects
+        panel_id: Optional panel ID
+        
+    Returns:
+        HTML for the evidence panel
+    """
+    # Generate ID if not provided
+    if not panel_id:
+        panel_id = f"panel_{str(uuid.uuid4())[:8]}"
+    
+    # Create the evidence panel HTML
+    panel_html = f"""
+    <div class="evidence-panel" id="{panel_id}" data-bullet="{bullet_id}">
+        <div class="evidence-panel-header">
+            <h4>Evidence Sources</h4>
+            <button class="close-panel">×</button>
+        </div>
+        <div class="evidence-panel-content">
+    """
+    
+    # Add each citation
+    for i, citation in enumerate(citations):
+        source = citation.get("cv_id", "Unknown Source")
+        section = citation.get("section", "Unknown Section")
+        snippet = citation.get("snippet", "")
+        score = citation.get("score", 0.0)
+        
+        # Determine score class
+        if score >= 0.8:
+            score_class = "high-score"
+        elif score >= 0.5:
+            score_class = "medium-score"
+        else:
+            score_class = "low-score"
+        
+        panel_html += f"""
+        <div class="evidence-item">
+            <div class="evidence-header">
+                <span class="evidence-source">{source}</span>
+                <span class="evidence-section">{section}</span>
+                <span class="evidence-score {score_class}">{score:.0%}</span>
+            </div>
+            <div class="evidence-snippet">{snippet}</div>
+        </div>
+        """
+    
+    panel_html += """
+        </div>
+    </div>
+    """
+    
+    return panel_html
+
+def add_interactive_evidence_css():
+    """Add CSS for interactive evidence components."""
+    st.markdown("""
+    <style>
+        /* Interactive Bullet Styles */
+        .interactive-bullet {
+            position: relative;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: #ffffff;
+            border-left: 4px solid #d1d5db;
+            transition: all 0.2s ease;
+        }
+        
+        .interactive-bullet:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .interactive-bullet.high-confidence {
+            border-left-color: #10b981;
+        }
+        
+        .interactive-bullet.medium-confidence {
+            border-left-color: #f59e0b;
+        }
+        
+        .interactive-bullet.low-confidence {
+            border-left-color: #ef4444;
+        }
+        
+        .bullet-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .bullet-text {
+            flex: 1;
+            color: #111827;
+        }
+        
+        .risk-indicator {
+            margin-left: 8px;
+            color: #f59e0b;
+            cursor: help;
+        }
+        
+        .bullet-confidence {
+            height: 4px;
+            width: 100%;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .confidence-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            border-radius: 2px;
+        }
+        
+        /* Citation Marker Styles */
+        .citation-marker {
+            cursor: pointer;
+            color: #3b82f6;
+            font-size: 0.8em;
+            margin-left: 2px;
+        }
+        
+        /* Evidence Panel Styles */
+        .evidence-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+        
+        .evidence-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .evidence-panel-header h4 {
+            margin: 0;
+            color: #111827;
+            font-weight: 500;
+        }
+        
+        .close-panel {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        
+        .evidence-panel-content {
+            padding: 16px 24px;
+            max-height: calc(80vh - 60px);
+            overflow-y: auto;
+        }
+        
+        .evidence-item {
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .evidence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .evidence-source {
+            font-weight: 500;
+            color: #111827;
+        }
+        
+        .evidence-section {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        
+        .evidence-score {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .evidence-score.high-score {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .evidence-score.medium-score {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .evidence-score.low-score {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .evidence-snippet {
+            color: #374151;
+            font-size: 0.95em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        /* Overlay */
+        .evidence-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+def add_interactive_evidence_js():
+    """Add JavaScript for interactive evidence components."""
+    st.markdown("""
+    <script>
+        // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'evidence-overlay';
+            document.body.appendChild(overlay);
+            
+            // Handle citation marker clicks
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('citation-marker')) {
+                    const citationId = event.target.getAttribute('data-citations');
+                    showEvidencePanel(citationId);
+                }
+            });
+            
+            // Handle close panel button clicks
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('close-panel')) {
+                    hideEvidencePanel();
+                }
+            });
+            
+            // Handle overlay clicks
+            overlay.addEventListener('click', function() {
+                hideEvidencePanel();
+            });
+            
+            // Show evidence panel
+            function showEvidencePanel(citationId) {
+                // Get the panel
+                const panel = document.querySelector(`.evidence-panel[data-citation="${citationId}"]`);
+                if (panel) {
+                    panel.style.display = 'block';
+                    overlay.style.display = 'block';
+                }
+            }
+            
+            // Hide evidence panel
+            function hideEvidencePanel() {
+                const panels = document.querySelectorAll('.evidence-panel');
+                panels.forEach(panel => {
+                    panel.style.display = 'none';
+                });
+                overlay.style.display = 'none';
+            }
+        });
+    </script>
+    """, unsafe_allow_html=True)
+
+def render_interactive_cv_section(
+    section_title: str,
+    bullets: List[Dict[str, Any]],
+    section_id: Optional[str] = None
+):
+    """
+    Render an interactive CV section with evidence-linked bullets.
+    
+    Args:
+        section_title: Title of the section
+        bullets: List of bullet objects with text, citations, confidence, and risk_flags
+        section_id: Optional section ID
+    """
+    # Generate ID if not provided
+    if not section_id:
+        section_id = f"section_{str(uuid.uuid4())[:8]}"
+    
+    # Create section container
+    st.markdown(f"### {section_title}")
+    
+    # Add CSS and JavaScript
+    add_interactive_evidence_css()
+    add_interactive_evidence_js()
+    
+    # Create bullets and evidence panels
+    bullets_html = ""
+    panels_html = ""
+    
+    for i, bullet in enumerate(bullets):
+        bullet_id = f"{section_id}_bullet_{i}"
+        panel_id = f"{section_id}_panel_{i}"
+        
+        # Create bullet HTML
+        bullet_html = create_interactive_bullet(
+            bullet_text=bullet.get("text", ""),
+            citations=bullet.get("citations", []),
+            confidence=bullet.get("confidence", 0.0),
+            risk_flags=bullet.get("risk_flags", []),
+            bullet_id=bullet_id
+        )
+        bullets_html += bullet_html
+        
+        # Create evidence panel HTML
+        panel_html = create_evidence_panel(
+            bullet_id=bullet_id,
+            citations=bullet.get("citations", []),
+            panel_id=panel_id
+        )
+        panels_html += panel_html
+    
+    # Render bullets and panels
+    st.markdown(f"""
+    <div class="interactive-section" id="{section_id}">
+        <div class="interactive-bullets">
+            {bullets_html}
+        </div>
+        {panels_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+def render_cv_with_evidence(cv_data: Dict[str, Any]):
+    """
+    Render a complete CV with interactive evidence components.
+    
+    Args:
+        cv_data: CV data with sections and evidence
+    """
+    # Contact information
+    contact_info = cv_data.get("contact_info", {})
+    st.markdown(f"""
+    <div style="text-align: center; margin-bottom: 32px;">
+        <h2 style="margin-bottom: 8px;">{contact_info.get("name", "")}</h2>
+        <p style="color: #6b7280;">
+            {contact_info.get("email", "")} | {contact_info.get("phone", "")} | {contact_info.get("location", "")}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Summary section
+    summary = cv_data.get("summary", {})
+    st.markdown("### Professional Summary")
+    st.markdown(summary.get("content", ""))
+    
+    # Experience section with interactive bullets
+    experience = cv_data.get("experience", {})
+    experience_bullets = []
+    
+    # Extract bullets from experience content
+    experience_content = experience.get("content", "")
+    bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+    experience_texts = re.findall(bullet_pattern, experience_content, re.DOTALL)
+    
+    # Create bullet objects
+    for i, text in enumerate(experience_texts):
+        # Get citations for this bullet (simplified - in real implementation, would match to actual evidence)
+        citations = []
+        if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
+            matches = cv_data["match_evidence"]["matches"]
+            if isinstance(matches, list) and i < len(matches):
+                citations = [matches[i]]
+        
+        # Create bullet object
+        bullet = {
+            "text": text.strip(),
+            "citations": citations,
+            "confidence": 0.8 if citations else 0.3,  # Simplified
+            "risk_flags": []  # Simplified
+        }
+        experience_bullets.append(bullet)
+    
+    # Render interactive experience section
+    render_interactive_cv_section("Work Experience", experience_bullets)
+    
+    # Skills section
+    skills = cv_data.get("skills", {})
+    st.markdown("### Skills")
+    st.markdown(skills.get("content", ""))
+    
+    # Education section
+    education = cv_data.get("education", {})
+    st.markdown("### Education")
+    st.markdown(education.get("content", ""))
+    
+    # Evidence summary
+    st.markdown("### Evidence Summary")
+    
+    # Get all citations
+    all_citations = []
+    if "match_evidence" in cv_data and "matches" in cv_data["match_evidence"]:
+        matches = cv_data["match_evidence"]["matches"]
+        if isinstance(matches, list):
+            all_citations = matches
+    
+    # Group citations by source
+    citations_by_source = {}
+    for citation in all_citations:
+        source = citation.get("cv_id", "Unknown")
+        if source not in citations_by_source:
+            citations_by_source[source] = []
+        citations_by_source[source].append(citation)
+    
+    # Display citation summary
+    for source, citations in citations_by_source.items():
+        with st.expander(f"📄 {source} ({len(citations)} citations)"):
+            for i, citation in enumerate(citations):
+                st.markdown(f"**{i+1}.** {citation.get('text', '')}")
+                st.markdown(f"*Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}*")
+                st.markdown("---")

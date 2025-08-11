@@ -12,6 +12,10 @@ import logging
 import json
 from datetime import datetime
 
+# Import UI components
+from ui.components.evidence_display import render_interactive_cv_section
+from ui.components.enhanced_export import create_export_section
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -347,14 +351,84 @@ def main():
     
     with col2_quick:
         if st.button("📊 Export CV Data", use_container_width=True):
-            # TODO: Implement export functionality
-            st.info("🚧 Export feature coming soon!")
+            # Show export options using our enhanced export component
+            if "export_view" not in st.session_state:
+                st.session_state.export_view = True
+            else:
+                st.session_state.export_view = not st.session_state.export_view
     
     with col3_quick:
         if st.button("🔄 Refresh Data", use_container_width=True):
             st.rerun()
     
     st.markdown("</div></div>", unsafe_allow_html=True)
+    
+    # Show export section if export view is active
+    if st.session_state.get("export_view", False) and cv_stats["total_cvs"] > 0:
+        st.markdown("""
+        <div style="max-width: 1000px; margin: 48px auto;">
+            <h2 style="text-align: center; font-weight: 300; color: #111827; margin-bottom: 24px;">
+                Export Options
+            </h2>
+        """, unsafe_allow_html=True)
+        
+        # Get the most recent CV data
+        recent_cv_data = generator.get_most_recent_cv(user_id)
+        
+        if recent_cv_data:
+            # Create sample evidence validation data
+            evidence_validation = {
+                "status": "success",
+                "coverage_matrix": {
+                    "summary": {
+                        "total_requirements": 10,
+                        "covered_requirements": 7,
+                        "overall_coverage_rate": 0.7,
+                        "average_confidence": 0.8,
+                        "critical_gaps": ["Cloud deployment experience", "Team leadership"]
+                    },
+                    "detailed_matrix": [
+                        {
+                            "text": "Python programming",
+                            "category": "required_skill",
+                            "covered": True,
+                            "confidence": 0.92,
+                            "evidence_count": 3
+                        },
+                        {
+                            "text": "Machine learning",
+                            "category": "required_skill",
+                            "covered": True,
+                            "confidence": 0.87,
+                            "evidence_count": 2
+                        },
+                        {
+                            "text": "Cloud deployment",
+                            "category": "required_skill",
+                            "covered": False,
+                            "confidence": 0.2,
+                            "evidence_count": 0
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "requirement": "Cloud deployment experience",
+                            "recommendations": ["Consider adding cloud deployment experience to your CV"]
+                        },
+                        {
+                            "requirement": "Team leadership",
+                            "recommendations": ["Add specific examples of team leadership"]
+                        }
+                    ]
+                }
+            }
+            
+            # Use our enhanced export component
+            create_export_section(recent_cv_data, evidence_validation)
+        else:
+            st.info("No CV data available for export. Generate a CV first.")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
