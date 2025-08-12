@@ -545,7 +545,8 @@ class CVExporter:
                 # If no output path, save to the exports directory
                 exports_dir = os.path.join(os.getcwd(), "exports")
                 os.makedirs(exports_dir, exist_ok=True)
-                output_path = os.path.join(exports_dir, f"cv_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx")
+                template_name = template.get("id", "default")
+                output_path = os.path.join(exports_dir, f"cv_{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx")
                 doc.save(output_path)
             
             # Read the file content for return
@@ -729,7 +730,8 @@ class CVExporter:
                 # Save to the exports directory
                 exports_dir = os.path.join(os.getcwd(), "exports")
                 os.makedirs(exports_dir, exist_ok=True)
-                output_path = os.path.join(exports_dir, f"cv_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+                template_name = template.get("id", "default")
+                output_path = os.path.join(exports_dir, f"cv_{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
                 with open(output_path, 'wb') as f:
                     f.write(pdf_content)
             else:
