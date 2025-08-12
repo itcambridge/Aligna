@@ -100,7 +100,7 @@ class CVExporter:
             else:
                 raise ValueError(f"Unsupported output format: {output_format}")
             
-            logger.info(f"Successfully exported CV in {output_format} format using {template_id} template")
+            logger.info(f"Successfully exported CV in {output_format} format using {template_id} template to {output_path}")
             return result
             
         except Exception as e:
