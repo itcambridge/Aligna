@@ -464,6 +464,9 @@ class CVExporter:
             doc.core_properties.author = cv_content.get("contact", "").split("\n")[0] if "contact" in cv_content else "CV Owner"
             doc.core_properties.title = f"CV - {doc.core_properties.author}"
             
+            # Debug log
+            logger.info(f"Creating DOCX with content keys: {list(cv_content.keys())}")
+            
             # Set document styles
             style = doc.styles['Normal']
             style.font.name = 'Calibri'
@@ -537,6 +540,9 @@ class CVExporter:
                 doc.add_heading('EVIDENCE & CITATIONS', level=1)
                 doc.add_paragraph(cv_content["footnotes"])
             
+            # Add a simple paragraph to ensure the document is not empty
+            doc.add_paragraph("CV Content:")
+            
             # Save the document
             if output_path:
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -552,6 +558,9 @@ class CVExporter:
             # Read the file content for return
             with open(output_path, 'rb') as f:
                 docx_content = f.read()
+            
+            # Log success
+            logger.info(f"Successfully created DOCX file at {output_path}")
             
             return {
                 "status": "success",

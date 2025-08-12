@@ -498,6 +498,9 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
     # Debug: Log the structure of cv_data
     st.write("Debug: CV Data Keys", list(cv_data.keys()))
     
+    # Debug: Log the CV text
+    st.write("Debug: CV Text (first 100 chars):", cv_data.get("cv_text", "")[:100] if cv_data.get("cv_text") else "No CV text")
+    
     # Check if we have the generated CV data
     if "generated_cv" in cv_data:
         # Use the generated CV structure
@@ -505,6 +508,14 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
         
         # Debug: Log the structure of generated_cv
         st.write("Debug: Generated CV Keys", list(generated_cv.keys()))
+        
+        # Debug: Log the contact info
+        contact_info = generated_cv.get("contact_info", {})
+        st.write("Debug: Contact Info:", contact_info)
+        
+        # Debug: Log the summary
+        summary = generated_cv.get("summary", {})
+        st.write("Debug: Summary:", summary)
         
         # If sections exist, debug their structure
         if "sections" in generated_cv:
@@ -517,6 +528,9 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
                 st.write(f"Debug: First section bullet count: {len(bullets)}")
                 if len(bullets) > 0:
                     st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
+                    st.write(f"Debug: First bullet text: {bullets[0].get('text', 'No text')}")
+        else:
+            st.write("Debug: No sections found in generated_cv")
         
         # Contact information
         contact_info = generated_cv.get("contact_info", {})
@@ -632,10 +646,17 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
             st.markdown(education.get("content", ""))
     
     # If no sections were rendered but we have matches, create sections from matches
-    if "matches" in cv_data and not "generated_cv" in cv_data:
+    if "matches" in cv_data:
+        st.write("Debug: Matches found, creating sections from matches")
         # Get all matches
         matches = cv_data.get("matches", [])
         st.write(f"Debug: Creating sections from {len(matches)} matches")
+        
+        # Debug: Log the first few matches
+        if len(matches) > 0:
+            st.write(f"Debug: First match keys: {list(matches[0].keys())}")
+            st.write(f"Debug: First match text: {matches[0].get('text', 'No text')}")
+            st.write(f"Debug: First match category: {matches[0].get('category', 'No category')}")
         
         # Group matches by category
         matches_by_category = {}
