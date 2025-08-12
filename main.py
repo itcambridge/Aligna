@@ -477,7 +477,9 @@ class GroundedCVGenerator:
                     "match_rate": evidence_validation["coverage_matrix"]["summary"]["overall_coverage_rate"]
                 },
                 "cv_stats": self.cv_processor.get_user_cv_stats(user_id),
-                "generated_at": datetime.now().isoformat()
+                "generated_at": datetime.now().isoformat(),
+                "generated_cv": generated_cv.dict(),  # Add the generated CV to the result
+                "matches": cv_matches["matches"]  # Add the matches to the result
             }
             
             logger.info(f"Successfully generated CV from knowledge base for user {user_id}")
