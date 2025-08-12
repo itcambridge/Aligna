@@ -96,26 +96,52 @@ def create_document_export_tab(cv_data: Dict[str, Any]):
         index=0
     )
     
+    # Initialize export format state if it doesn't exist
+    if 'export_format_clicked' not in st.session_state:
+        st.session_state.export_format_clicked = None
+    
     # Format selection
     st.subheader("Select Format")
     
     format_col1, format_col2, format_col3, format_col4 = st.columns(4)
     
+    # Define callback functions for each button
+    def on_text_click():
+        logger.info("Text button clicked")
+        st.session_state.export_format_clicked = "text"
+    
+    def on_docx_click():
+        logger.info("DOCX button clicked")
+        st.session_state.export_format_clicked = "docx"
+    
+    def on_pdf_click():
+        logger.info("PDF button clicked")
+        st.session_state.export_format_clicked = "pdf"
+    
+    def on_json_click():
+        logger.info("JSON button clicked")
+        st.session_state.export_format_clicked = "json"
+    
+    # Create buttons with callbacks
     with format_col1:
-        if st.button("📝 Text", use_container_width=True):
-            export_cv(cv_data, selected_template, "text")
+        st.button("📝 Text", on_click=on_text_click, use_container_width=True)
     
     with format_col2:
-        if st.button("📄 DOCX", use_container_width=True):
-            export_cv(cv_data, selected_template, "docx")
+        st.button("📄 DOCX", on_click=on_docx_click, use_container_width=True)
     
     with format_col3:
-        if st.button("📊 PDF", use_container_width=True):
-            export_cv(cv_data, selected_template, "pdf")
+        st.button("📊 PDF", on_click=on_pdf_click, use_container_width=True)
     
     with format_col4:
-        if st.button("🔄 JSON", use_container_width=True):
-            export_cv(cv_data, selected_template, "json")
+        st.button("🔄 JSON", on_click=on_json_click, use_container_width=True)
+    
+    # Process the export if a format was clicked
+    if st.session_state.export_format_clicked:
+        logger.info(f"Processing export for format: {st.session_state.export_format_clicked}")
+        export_format = st.session_state.export_format_clicked
+        export_cv(cv_data, selected_template, export_format)
+        # Reset the clicked state to prevent repeated exports
+        st.session_state.export_format_clicked = None
     
     # Display download button if content is available
     if st.session_state.export_content is not None:
@@ -359,6 +385,10 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         template_id: Template ID
         output_format: Output format (text, docx, pdf, json)
     """
+    # Store the CV data in session state to preserve it
+    if 'cv_data_backup' not in st.session_state:
+        st.session_state.cv_data_backup = cv_data
+        logger.info("CV data backed up to session state")
     try:
         # Log the export attempt
         logger.info(f"Attempting to export CV in {output_format} format using {template_id} template")
