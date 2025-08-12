@@ -1,226 +1,129 @@
-# CV Export Functionality Fix
+# Aligna Export Fix
 
-This document explains the issue with CV exports in the production environment and provides instructions for deploying the fix.
+This document explains the fix for the CV export functionality in Aligna, which addresses issues with DOCX and PDF exports.
 
-## Issue Description
+## Problem
 
-Users are experiencing problems when trying to export CVs in various formats (particularly DOCX and PDF) in the production environment. The export functionality works correctly in the development/test environment but fails in production.
+The original implementation used temporary files for exporting CVs, which caused issues in the Docker environment:
 
-### Root Causes
+1. Temporary files were created inside the container but not properly accessible
+2. Permission issues when trying to read/write temporary files
+3. Files were lost when the container restarted
 
-1. **Temporary Directory Permissions**: The application needs write access to temporary directories to generate export files.
-2. **Logging Configuration**: Enhanced logging has been added to help diagnose any remaining issues.
-3. **File Handling**: Improved error handling and logging for file operations.
+## Solution
 
-## Fix Implementation
+The fix implements the following changes:
 
-The following changes have been made to the `ui/components/enhanced_export.py` file:
-
-1. Added comprehensive logging throughout the export process
-2. Improved error handling for file operations
-3. Added detailed logging of the export process steps
-4. Added traceback logging for exceptions
+1. Created a dedicated `exports` directory for storing exported files
+2. Modified `docker-compose.yml` to mount this directory in the Docker container
+3. Updated `ui/components/enhanced_export.py` to use the exports directory instead of temporary files
+4. Updated `export/cv_exporter.py` to use the exports directory for DOCX and PDF generation
+5. Added more detailed logging for troubleshooting
 
 ## Deployment Instructions
 
-### Option 1: Linux Deployment Script
+### Option 1: Using the Deployment Script (Linux/macOS)
 
-1. Copy the `scripts/deploy_export_fix.sh` script to the production server
+1. Copy the `deploy_export_fix.sh` script to your server
 2. Make it executable: `chmod +x deploy_export_fix.sh`
-3. Run the script: `sudo ./deploy_export_fix.sh`
+3. Run the script: `./deploy_export_fix.sh`
 
-### Option 2: Windows Deployment Script
+### Option 2: Using the PowerShell Script (Windows)
 
-1. Copy the following files to the Windows server:
-   - `ui/components/enhanced_export.py`
-   - `scripts/Deploy-ExportFix.ps1`
+1. Edit the `Deploy-ExportFix.ps1` script to set your server details
+2. Run the script in PowerShell: `.\Deploy-ExportFix.ps1`
 
-2. Open PowerShell as Administrator
+### Option 3: Manual Deployment
 
-3. Run the script:
-   ```powershell
-   cd path\to\application
-   .\scripts\Deploy-ExportFix.ps1
-   ```
-
-4. If the application is in a different directory, specify the path:
-   ```powershell
-   .\scripts\Deploy-ExportFix.ps1 -AppDir "C:\path\to\application"
-   ```
-
-### Option 2: Manual Deployment
-
-1. SSH into the production server
-2. Create a backup of the current file:
+1. SSH into your Linode server
+2. Navigate to the application directory:
    ```bash
-   mkdir -p /home/cvgen/grounded-cv-generator/backups/$(date +%Y%m%d_%H%M%S)/ui/components
-   cp /home/cvgen/grounded-cv-generator/ui/components/enhanced_export.py /home/cvgen/grounded-cv-generator/backups/$(date +%Y%m%d_%H%M%S)/ui/components/
+   cd /home/cvgen/grounded-cv-generator
    ```
-3. Copy the updated `ui/components/enhanced_export.py` file to the server
-4. Create and set permissions for the temporary directory:
+
+3. Pull the latest changes from GitHub:
    ```bash
-   mkdir -p /tmp/aligna_exports
-   chmod 777 /tmp/aligna_exports
-   chown -R cvgen:cvgen /tmp/aligna_exports
+   git fetch origin
+   git checkout feature/next-generation-enhancements
+   git pull origin feature/next-generation-enhancements
    ```
-5. Create and set permissions for the log file:
+
+4. Create the exports directory and set permissions:
    ```bash
-   touch /home/cvgen/grounded-cv-generator/export_debug.log
-   chmod 666 /home/cvgen/grounded-cv-generator/export_debug.log
-   chown cvgen:cvgen /home/cvgen/grounded-cv-generator/export_debug.log
+   mkdir -p exports
+   chmod 777 exports
    ```
-6. Restart the application:
+
+5. Rebuild and restart the Docker containers:
    ```bash
-   sudo systemctl restart cvgen
-   ```
-
-### Option 3: Docker Deployment
-
-If using Docker, you have two options:
-
-#### Option 3A: Using the Docker Deployment Script
-
-1. Copy the following files to the production server:
-   - `ui/components/enhanced_export.py`
-   - `docker-compose.export-fix.yml`
-   - `scripts/deploy_docker_export_fix.sh`
-
-2. Make the script executable:
-   ```bash
-   chmod +x scripts/deploy_docker_export_fix.sh
-   ```
-
-3. Run the script from the application root directory:
-   ```bash
-   ./scripts/deploy_docker_export_fix.sh
-   ```
-
-This script will:
-- Back up the current files
-- Update the docker-compose.yml file with the necessary volume mounts
-- Rebuild and restart the Docker containers
-
-#### Option 3B: Manual Docker Deployment
-
-1. Copy the updated `ui/components/enhanced_export.py` file to the server
-2. Update your docker-compose.yml to include the necessary volume mounts:
-   ```yaml
-   # Add to the app service in docker-compose.yml
-   volumes:
-     - /tmp:/tmp
-     - ./logs:/app/logs
-     - ./export_debug.log:/app/export_debug.log
-   ```
-3. Rebuild and restart the Docker container:
-   ```bash
-   docker-compose down
-   docker-compose build app
-   docker-compose up -d
+   docker compose down
+   docker compose build --no-cache app
+   docker compose up -d
    ```
 
 ## Verification
 
-After deploying the fix:
+To verify that the fix is working:
 
-1. Log in to the application
-2. Navigate to the CV export section
-3. Try exporting a CV in different formats (DOCX, PDF, Text, JSON)
-4. Check the logs for any errors:
-   ```bash
-   tail -f /home/cvgen/grounded-cv-generator/export_debug.log
-   ```
+1. Access the Aligna application in your browser
+2. Generate a CV
+3. Click on the DOCX or PDF export buttons
+4. Check if the download works correctly
+
+If you encounter any issues, check the logs:
+
+```bash
+docker compose logs app | grep -i export
+```
+
+Or check the export_debug.log file:
+
+```bash
+cat export_debug.log
+```
+
+## Technical Details
+
+### Changes to docker-compose.yml
+
+Added a volume mount for the exports directory:
+
+```yaml
+volumes:
+  # Mount for exports
+  - ./exports:/app/exports
+```
+
+### Changes to enhanced_export.py
+
+Modified the export_cv function to use the exports directory:
+
+```python
+# Create exports directory if it doesn't exist
+exports_dir = os.path.join(os.getcwd(), "exports")
+os.makedirs(exports_dir, exist_ok=True)
+
+# Generate output file path in the exports directory
+output_file = os.path.join(exports_dir, f"cv_{template_id}.{extension}")
+```
+
+### Changes to cv_exporter.py
+
+Updated the DOCX and PDF export functions to use the exports directory:
+
+```python
+# Save to the exports directory
+exports_dir = os.path.join(os.getcwd(), "exports")
+os.makedirs(exports_dir, exist_ok=True)
+output_path = os.path.join(exports_dir, f"cv_{template['id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+```
 
 ## Troubleshooting
 
-### Linux Troubleshooting
+If exports still don't work after deployment:
 
-If issues persist on Linux:
-
-1. Check the log file for detailed error messages:
-   ```bash
-   cat /home/cvgen/grounded-cv-generator/export_debug.log
-   ```
-
-2. Verify permissions:
-   ```bash
-   ls -la /tmp/aligna_exports
-   ls -la /tmp
-   ```
-
-3. Check if the application service is running:
-   ```bash
-   sudo systemctl status cvgen
-   ```
-
-4. Check for any Docker container issues:
-   ```bash
-   docker-compose logs app
-   ```
-
-5. Verify the Python environment has the necessary dependencies:
-   ```bash
-   source /home/cvgen/grounded-cv-generator/venv/bin/activate
-   pip list | grep python-docx
-   pip list | grep reportlab
-   ```
-
-### Windows Troubleshooting
-
-If issues persist on Windows:
-
-1. Check the log file for detailed error messages:
-   ```powershell
-   Get-Content .\export_debug.log
-   ```
-
-2. Verify permissions on the temporary directory:
-   ```powershell
-   Get-Acl -Path "C:\Temp\aligna_exports" | Format-List
-   ```
-
-3. Check if the application service is running:
-   ```powershell
-   Get-Service -Name "Aligna" -ErrorAction SilentlyContinue
-   ```
-
-4. Verify the Python environment has the necessary dependencies:
-   ```powershell
-   & ".\.venv\Scripts\Activate.ps1"
-   pip list | findstr "python-docx"
-   pip list | findstr "reportlab"
-   ```
-
-5. Check for any file locks that might be preventing access:
-   ```powershell
-   # Install Handle tool from Sysinternals if needed
-   # Check for locks on the temp directory
-   handle.exe "C:\Temp\aligna_exports"
-   ```
-
-### Docker Troubleshooting
-
-If using Docker:
-
-1. Check container logs:
-   ```bash
-   docker-compose logs app
-   ```
-
-2. Verify volume mounts:
-   ```bash
-   docker-compose exec app ls -la /tmp
-   ```
-
-3. Check if the container has the necessary permissions:
-   ```bash
-   docker-compose exec app id
-   ```
-
-4. Inspect the container configuration:
-   ```bash
-   docker inspect $(docker-compose ps -q app)
-   ```
-
-## Contact
-
-If you need assistance with this fix, please contact the development team.
+1. Check if the exports directory exists and has the correct permissions
+2. Verify that the Docker container has access to the exports directory
+3. Check the logs for any error messages
+4. Ensure the application was rebuilt with the latest code changes
+5. Try restarting the Docker containers
