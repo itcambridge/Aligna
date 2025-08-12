@@ -9,8 +9,28 @@ from typing import Dict, List, Any, Optional
 import tempfile
 from export.cv_exporter import CVExporter
 import logging
+import sys
 
+# Configure logging to write to both console and file
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Create file handler
+file_handler = logging.FileHandler('export_debug.log')
+file_handler.setLevel(logging.DEBUG)
+
+# Create console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Add handlers to logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
 
 def create_export_section(cv_data: Dict[str, Any], evidence_validation: Dict[str, Any]):
     """
@@ -20,6 +40,9 @@ def create_export_section(cv_data: Dict[str, Any], evidence_validation: Dict[str
         cv_data: CV data with sections and evidence
         evidence_validation: Evidence validation results
     """
+    # Log the structure of the input data
+    logger.info(f"Creating export section with cv_data keys: {list(cv_data.keys())}")
+    logger.info(f"Evidence validation keys: {list(evidence_validation.keys()) if evidence_validation else 'None'}")
     st.markdown("""
     <div style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius: 24px; 
          padding: 32px; margin: 32px 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
@@ -46,10 +69,12 @@ def create_document_export_tab(cv_data: Dict[str, Any]):
     """Create document export tab."""
     # Initialize session state for export content if it doesn't exist
     if 'export_content' not in st.session_state:
+        logger.info("Initializing export session state")
         st.session_state.export_content = None
         st.session_state.export_filename = None
         st.session_state.export_mime = None
         st.session_state.export_format = None
+        logger.info("Export session state initialized")
     
     st.markdown("""
     <p style="margin-bottom: 16px;">Export your CV in different formats with citations preserved.</p>
@@ -335,6 +360,8 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         output_format: Output format (text, docx, pdf, json)
     """
     try:
+        # Log the export attempt
+        logger.info(f"Attempting to export CV in {output_format} format using {template_id} template")
         # Create a CV exporter instance
         exporter = CVExporter()
         
@@ -356,6 +383,9 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
             else:
                 raise ValueError(f"Unsupported format: {output_format}")
             
+            # Log the output file path
+            logger.info(f"Output file path: {output_file}")
+            
             # Export the CV
             result = exporter.export_cv(
                 cv_data=cv_data,
@@ -364,36 +394,55 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
                 output_path=output_file
             )
             
+            # Log the export result
+            logger.info(f"Export result: {result}")
+            
             # Check if export was successful
             if result["status"] != "success":
+                logger.error(f"Export failed: {result.get('error', 'Unknown error')}")
                 raise ValueError(f"Export failed: {result.get('error', 'Unknown error')}")
             
             # Read the file content
             if output_format in ["docx", "pdf"]:
                 # Binary content
+                logger.info(f"Reading binary content from {output_file}")
                 with open(output_file, 'rb') as f:
                     content = f.read()
+                logger.info(f"Read {len(content)} bytes of binary content")
             else:
                 # Text content
                 if "content" in result:
                     # Use content from result if available
+                    logger.info("Using content from result")
                     content = result["content"]
                     if output_format == "json" and isinstance(content, dict):
                         content = json.dumps(content, indent=2)
+                        logger.info("Converted JSON dict to string")
                 else:
                     # Read from file
+                    logger.info(f"Reading text content from {output_file}")
                     with open(output_file, 'r') as f:
                         content = f.read()
+                    logger.info(f"Read {len(content)} characters of text content")
             
             # Store in session state for download
+            logger.info("Storing content in session state")
             st.session_state.export_content = content
             st.session_state.export_filename = os.path.basename(output_file)
             st.session_state.export_mime = mime_type
             st.session_state.export_format = output_format
+            logger.info(f"Session state updated: format={output_format}, mime={mime_type}, filename={os.path.basename(output_file)}")
     
     except Exception as e:
         logger.error(f"Error exporting CV: {e}")
         st.error(f"❌ Export error: {str(e)}")
+        
+        # Log the exception traceback
+        import traceback
+        logger.error(f"Exception traceback: {traceback.format_exc()}")
+        
+        # Log the CV data structure (without sensitive content)
+        logger.info(f"CV data keys: {list(cv_data.keys())}")
         
         # Fallback to text format if export fails
         if output_format in ["docx", "pdf"]:
@@ -402,10 +451,12 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
             content += f"\n\nNote: {output_format.upper()} export failed. This is a text version instead."
             
             # Store fallback in session state
+            logger.info("Storing fallback content in session state")
             st.session_state.export_content = content
             st.session_state.export_filename = f"cv_{template_id}.txt"
             st.session_state.export_mime = "text/plain"
             st.session_state.export_format = "text (fallback)"
+            logger.info(f"Session state updated with fallback: format=text (fallback)")
 
 def create_text_cv(cv_data: Dict[str, Any]) -> str:
     """
