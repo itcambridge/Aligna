@@ -542,10 +542,11 @@ class CVExporter:
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 doc.save(output_path)
             else:
-                # If no output path, save to a temporary file
-                with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
-                    output_path = temp_file.name
-                    doc.save(output_path)
+                # If no output path, save to the exports directory
+                exports_dir = os.path.join(os.getcwd(), "exports")
+                os.makedirs(exports_dir, exist_ok=True)
+                output_path = os.path.join(exports_dir, f"cv_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx")
+                doc.save(output_path)
             
             # Read the file content for return
             with open(output_path, 'rb') as f:
@@ -725,11 +726,12 @@ class CVExporter:
                 pdf_content = buffer.getvalue()
                 buffer.close()
                 
-                # Save to a temporary file for return
-                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
-                    output_path = temp_file.name
-                    with open(output_path, 'wb') as f:
-                        f.write(pdf_content)
+                # Save to the exports directory
+                exports_dir = os.path.join(os.getcwd(), "exports")
+                os.makedirs(exports_dir, exist_ok=True)
+                output_path = os.path.join(exports_dir, f"cv_{template_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+                with open(output_path, 'wb') as f:
+                    f.write(pdf_content)
             else:
                 # Read the file content for return
                 with open(output_path, 'rb') as f:

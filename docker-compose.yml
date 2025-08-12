@@ -19,14 +19,16 @@ services:
     depends_on:
       - qdrant
     volumes:
+      # Mount the application code to ensure container uses current code
+      - .:/app
       # Mount for temporary directories
       - /tmp:/tmp
       # Mount for logs
       - ./logs:/app/logs
       # Mount for export debug log
       - ./export_debug.log:/app/export_debug.log
-      # Mount the application code to ensure container uses current code
-      - .:/app
+      # Mount for exports
+      - ./exports:/app/exports
 
 volumes:
   qdrant_data:

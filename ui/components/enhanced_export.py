@@ -362,76 +362,85 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
     try:
         # Log the export attempt
         logger.info(f"Attempting to export CV in {output_format} format using {template_id} template")
+        
+        # Create exports directory if it doesn't exist
+        exports_dir = os.path.join(os.getcwd(), "exports")
+        os.makedirs(exports_dir, exist_ok=True)
+        logger.info(f"Using exports directory: {exports_dir}")
+        
         # Create a CV exporter instance
         exporter = CVExporter()
         
-        # Use a temporary directory for output files
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Generate output file path
-            if output_format == "text":
-                output_file = os.path.join(temp_dir, f"cv_{template_id}.txt")
-                mime_type = "text/plain"
-            elif output_format == "docx":
-                output_file = os.path.join(temp_dir, f"cv_{template_id}.docx")
-                mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            elif output_format == "pdf":
-                output_file = os.path.join(temp_dir, f"cv_{template_id}.pdf")
-                mime_type = "application/pdf"
-            elif output_format == "json":
-                output_file = os.path.join(temp_dir, f"cv_{template_id}.json")
-                mime_type = "application/json"
+        # Generate output file path in the exports directory
+        if output_format == "text":
+            output_file = os.path.join(exports_dir, f"cv_{template_id}.txt")
+            mime_type = "text/plain"
+        elif output_format == "docx":
+            output_file = os.path.join(exports_dir, f"cv_{template_id}.docx")
+            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif output_format == "pdf":
+            output_file = os.path.join(exports_dir, f"cv_{template_id}.pdf")
+            mime_type = "application/pdf"
+        elif output_format == "json":
+            output_file = os.path.join(exports_dir, f"cv_{template_id}.json")
+            mime_type = "application/json"
+        else:
+            raise ValueError(f"Unsupported format: {output_format}")
+        
+        # Log the output file path
+        logger.info(f"Output file path: {output_file}")
+        
+        # Check if the directory is writable
+        if not os.access(os.path.dirname(output_file), os.W_OK):
+            logger.error(f"Directory {os.path.dirname(output_file)} is not writable")
+            raise PermissionError(f"Directory {os.path.dirname(output_file)} is not writable")
+        
+        # Export the CV
+        result = exporter.export_cv(
+            cv_data=cv_data,
+            template_id=template_id,
+            output_format=output_format,
+            output_path=output_file
+        )
+        
+        # Log the export result
+        logger.info(f"Export result: {result}")
+        
+        # Check if export was successful
+        if result["status"] != "success":
+            logger.error(f"Export failed: {result.get('error', 'Unknown error')}")
+            raise ValueError(f"Export failed: {result.get('error', 'Unknown error')}")
+        
+        # Read the file content
+        if output_format in ["docx", "pdf"]:
+            # Binary content
+            logger.info(f"Reading binary content from {output_file}")
+            with open(output_file, 'rb') as f:
+                content = f.read()
+            logger.info(f"Read {len(content)} bytes of binary content")
+        else:
+            # Text content
+            if "content" in result:
+                # Use content from result if available
+                logger.info("Using content from result")
+                content = result["content"]
+                if output_format == "json" and isinstance(content, dict):
+                    content = json.dumps(content, indent=2)
+                    logger.info("Converted JSON dict to string")
             else:
-                raise ValueError(f"Unsupported format: {output_format}")
-            
-            # Log the output file path
-            logger.info(f"Output file path: {output_file}")
-            
-            # Export the CV
-            result = exporter.export_cv(
-                cv_data=cv_data,
-                template_id=template_id,
-                output_format=output_format,
-                output_path=output_file
-            )
-            
-            # Log the export result
-            logger.info(f"Export result: {result}")
-            
-            # Check if export was successful
-            if result["status"] != "success":
-                logger.error(f"Export failed: {result.get('error', 'Unknown error')}")
-                raise ValueError(f"Export failed: {result.get('error', 'Unknown error')}")
-            
-            # Read the file content
-            if output_format in ["docx", "pdf"]:
-                # Binary content
-                logger.info(f"Reading binary content from {output_file}")
-                with open(output_file, 'rb') as f:
+                # Read from file
+                logger.info(f"Reading text content from {output_file}")
+                with open(output_file, 'r') as f:
                     content = f.read()
-                logger.info(f"Read {len(content)} bytes of binary content")
-            else:
-                # Text content
-                if "content" in result:
-                    # Use content from result if available
-                    logger.info("Using content from result")
-                    content = result["content"]
-                    if output_format == "json" and isinstance(content, dict):
-                        content = json.dumps(content, indent=2)
-                        logger.info("Converted JSON dict to string")
-                else:
-                    # Read from file
-                    logger.info(f"Reading text content from {output_file}")
-                    with open(output_file, 'r') as f:
-                        content = f.read()
-                    logger.info(f"Read {len(content)} characters of text content")
-            
-            # Store in session state for download
-            logger.info("Storing content in session state")
-            st.session_state.export_content = content
-            st.session_state.export_filename = os.path.basename(output_file)
-            st.session_state.export_mime = mime_type
-            st.session_state.export_format = output_format
-            logger.info(f"Session state updated: format={output_format}, mime={mime_type}, filename={os.path.basename(output_file)}")
+                logger.info(f"Read {len(content)} characters of text content")
+        
+        # Store in session state for download
+        logger.info("Storing content in session state")
+        st.session_state.export_content = content
+        st.session_state.export_filename = os.path.basename(output_file)
+        st.session_state.export_mime = mime_type
+        st.session_state.export_format = output_format
+        logger.info(f"Session state updated: format={output_format}, mime={mime_type}, filename={os.path.basename(output_file)}")
     
     except Exception as e:
         logger.error(f"Error exporting CV: {e}")
