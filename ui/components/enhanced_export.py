@@ -103,45 +103,94 @@ def create_document_export_tab(cv_data: Dict[str, Any]):
     # Format selection
     st.subheader("Select Format")
     
-    format_col1, format_col2, format_col3, format_col4 = st.columns(4)
+    # Initialize export format state if it doesn't exist
+    if 'cv_data_backup' not in st.session_state:
+        st.session_state.cv_data_backup = cv_data
     
-    # Define callback functions for each button
-    def on_text_click():
-        logger.info("Text button clicked")
-        st.session_state.export_format_clicked = "text"
+    # Create a container for the export buttons
+    format_container = st.container()
     
-    def on_docx_click():
-        logger.info("DOCX button clicked")
-        st.session_state.export_format_clicked = "docx"
+    # Create a container for the download button
+    download_container = st.container()
     
-    def on_pdf_click():
-        logger.info("PDF button clicked")
-        st.session_state.export_format_clicked = "pdf"
+    # Create the export buttons
+    format_col1, format_col2, format_col3, format_col4 = format_container.columns(4)
     
-    def on_json_click():
-        logger.info("JSON button clicked")
-        st.session_state.export_format_clicked = "json"
-    
-    # Create buttons with callbacks
+    # Process text export
     with format_col1:
-        st.button("📝 Text", on_click=on_text_click, use_container_width=True)
+        if st.button("📝 Text", key="text_button", use_container_width=True):
+            logger.info("Text button clicked")
+            # Export directly without using session state
+            with st.spinner("Generating Text export..."):
+                try:
+                    # Export the CV
+                    export_result = export_cv(st.session_state.cv_data_backup, selected_template, "text")
+                    if export_result:
+                        st.session_state.export_content = export_result["content"]
+                        st.session_state.export_filename = f"cv_{selected_template}.txt"
+                        st.session_state.export_mime = "text/plain"
+                        st.session_state.export_format = "text"
+                        st.success("✅ Text export generated!")
+                except Exception as e:
+                    st.error(f"❌ Error generating Text export: {str(e)}")
+                    logger.error(f"Error generating Text export: {e}")
     
+    # Process DOCX export
     with format_col2:
-        st.button("📄 DOCX", on_click=on_docx_click, use_container_width=True)
+        if st.button("📄 DOCX", key="docx_button", use_container_width=True):
+            logger.info("DOCX button clicked")
+            # Export directly without using session state
+            with st.spinner("Generating DOCX export..."):
+                try:
+                    # Export the CV
+                    export_result = export_cv(st.session_state.cv_data_backup, selected_template, "docx")
+                    if export_result:
+                        st.session_state.export_content = export_result["content"]
+                        st.session_state.export_filename = f"cv_{selected_template}.docx"
+                        st.session_state.export_mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        st.session_state.export_format = "docx"
+                        st.success("✅ DOCX export generated!")
+                except Exception as e:
+                    st.error(f"❌ Error generating DOCX export: {str(e)}")
+                    logger.error(f"Error generating DOCX export: {e}")
     
+    # Process PDF export
     with format_col3:
-        st.button("📊 PDF", on_click=on_pdf_click, use_container_width=True)
+        if st.button("📊 PDF", key="pdf_button", use_container_width=True):
+            logger.info("PDF button clicked")
+            # Export directly without using session state
+            with st.spinner("Generating PDF export..."):
+                try:
+                    # Export the CV
+                    export_result = export_cv(st.session_state.cv_data_backup, selected_template, "pdf")
+                    if export_result:
+                        st.session_state.export_content = export_result["content"]
+                        st.session_state.export_filename = f"cv_{selected_template}.pdf"
+                        st.session_state.export_mime = "application/pdf"
+                        st.session_state.export_format = "pdf"
+                        st.success("✅ PDF export generated!")
+                except Exception as e:
+                    st.error(f"❌ Error generating PDF export: {str(e)}")
+                    logger.error(f"Error generating PDF export: {e}")
     
+    # Process JSON export
     with format_col4:
-        st.button("🔄 JSON", on_click=on_json_click, use_container_width=True)
-    
-    # Process the export if a format was clicked
-    if st.session_state.export_format_clicked:
-        logger.info(f"Processing export for format: {st.session_state.export_format_clicked}")
-        export_format = st.session_state.export_format_clicked
-        export_cv(cv_data, selected_template, export_format)
-        # Reset the clicked state to prevent repeated exports
-        st.session_state.export_format_clicked = None
+        if st.button("🔄 JSON", key="json_button", use_container_width=True):
+            logger.info("JSON button clicked")
+            # Export directly without using session state
+            with st.spinner("Generating JSON export..."):
+                try:
+                    # Export the CV
+                    export_result = export_cv(st.session_state.cv_data_backup, selected_template, "json")
+                    if export_result:
+                        st.session_state.export_content = export_result["content"]
+                        st.session_state.export_filename = f"cv_{selected_template}.json"
+                        st.session_state.export_mime = "application/json"
+                        st.session_state.export_format = "json"
+                        st.success("✅ JSON export generated!")
+                except Exception as e:
+                    st.error(f"❌ Error generating JSON export: {str(e)}")
+                    logger.error(f"Error generating JSON export: {e}")
     
     # Display download button if content is available
     if st.session_state.export_content is not None:
@@ -376,7 +425,7 @@ def create_advanced_export_tab(cv_data: Dict[str, Any]):
         
         st.success("✅ ATS-friendly version generated successfully! Click the download button above.")
 
-def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
+def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str) -> Dict[str, Any]:
     """
     Export CV using the CV exporter.
     
@@ -384,11 +433,10 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         cv_data: CV data
         template_id: Template ID
         output_format: Output format (text, docx, pdf, json)
+        
+    Returns:
+        Dictionary with export result
     """
-    # Store the CV data in session state to preserve it
-    if 'cv_data_backup' not in st.session_state:
-        st.session_state.cv_data_backup = cv_data
-        logger.info("CV data backed up to session state")
     try:
         # Log the export attempt
         logger.info(f"Attempting to export CV in {output_format} format using {template_id} template")
@@ -445,42 +493,6 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str):
         if output_format in ["docx", "pdf"]:
             # Binary content
             logger.info(f"Reading binary content from {output_file}")
-            with open(output_file, 'rb') as f:
-                content = f.read()
-            logger.info(f"Read {len(content)} bytes of binary content")
-        else:
-            # Text content
-            if "content" in result:
-                # Use content from result if available
-                logger.info("Using content from result")
-                content = result["content"]
-                if output_format == "json" and isinstance(content, dict):
-                    content = json.dumps(content, indent=2)
-                    logger.info("Converted JSON dict to string")
-            else:
-                # Read from file
-                logger.info(f"Reading text content from {output_file}")
-                with open(output_file, 'r') as f:
-                    content = f.read()
-                logger.info(f"Read {len(content)} characters of text content")
-        
-        # Store in session state for download
-        logger.info("Storing content in session state")
-        st.session_state.export_content = content
-        st.session_state.export_filename = os.path.basename(output_file)
-        st.session_state.export_mime = mime_type
-        st.session_state.export_format = output_format
-        logger.info(f"Session state updated: format={output_format}, mime={mime_type}, filename={os.path.basename(output_file)}")
-    
-    except Exception as e:
-        logger.error(f"Error exporting CV: {e}")
-        st.error(f"❌ Export error: {str(e)}")
-        
-        # Log the exception traceback
-        import traceback
-        logger.error(f"Exception traceback: {traceback.format_exc()}")
-        
-        # Log the CV data structure (without sensitive content)
         logger.info(f"CV data keys: {list(cv_data.keys())}")
         
         # Fallback to text format if export fails

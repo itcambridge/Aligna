@@ -889,12 +889,39 @@ def show_main_interface(user_id: str, generator: GroundedCVGenerator, demo_mode:
     <div style="padding: 24px; max-width: 768px; margin: 0 auto;">
     """, unsafe_allow_html=True)
     
+    # Check if we're returning from an export operation
+    if 'export_format_clicked' in st.session_state and st.session_state.export_format_clicked:
+        logger.info(f"Returning from export operation: {st.session_state.export_format_clicked}")
+        # Clear the export format clicked flag
+        st.session_state.export_format_clicked = None
+        
+        # If we have a stored job description and result, use them
+        if 'job_description' in st.session_state and 'cv_result' in st.session_state:
+            job_description = st.session_state.job_description
+            
+            # Display the job description in the text area
+            st.text_area(
+                "Enter the job description, requirements, and qualifications...",
+                value=job_description,
+                height=200,
+                placeholder="Paste the job description here..." + (" (Demo: Try 'Software Engineer with Python and Machine Learning experience')" if demo_mode else ""),
+                label_visibility="collapsed",
+                key="job_description_input"
+            )
+            
+            # Skip the button and directly show results
+            st.markdown("</div>", unsafe_allow_html=True)
+            show_generation_results(user_id, generator, job_description)
+            return
+    
+    # Normal flow - no stored result or not returning from export
     # Job description input
     job_description = st.text_area(
         "Enter the job description, requirements, and qualifications...",
         height=200,
         placeholder="Paste the job description here..." + (" (Demo: Try 'Software Engineer with Python and Machine Learning experience')" if demo_mode else ""),
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="job_description_input"
     )
     
     # Generate button
@@ -908,8 +935,20 @@ def show_main_interface(user_id: str, generator: GroundedCVGenerator, demo_mode:
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Processing section
+    # Check if we have a stored result but didn't come from an export operation
+    if not process_button and 'cv_result' in st.session_state and 'job_description' in st.session_state:
+        # Show the stored result
+        show_generation_results(user_id, generator, st.session_state.job_description)
+        return
+    
+    # Processing section for new generation
     if process_button and job_description:
+        # Clear any existing results when generating a new CV
+        if 'cv_result' in st.session_state:
+            del st.session_state.cv_result
+        if 'job_description' in st.session_state:
+            del st.session_state.job_description
+            
         if demo_mode:
             show_demo_results(job_description)
         else:
@@ -1057,6 +1096,14 @@ def show_demo_results(job_description: str):
 
 def show_generation_results(user_id: str, generator: GroundedCVGenerator, job_description: str):
     """Show actual generation results."""
+    # Check if we already have results in session state
+    if 'cv_result' in st.session_state and st.session_state.job_description == job_description:
+        # We're returning from an export operation or page refresh
+        logger.info("Using cached CV result from session state")
+        result = st.session_state.cv_result
+        show_results_section(result)
+        return
+    
     # Generate from knowledge base (we know user has CVs since we checked above)
     st.markdown("""
     <div class="progress-container">
@@ -1082,7 +1129,11 @@ def show_generation_results(user_id: str, generator: GroundedCVGenerator, job_de
         
         st.success("✅ Knowledge base processing complete!")
         
-        # Show results (existing code)
+        # Store the result and job description in session state
+        st.session_state.cv_result = result
+        st.session_state.job_description = job_description
+        
+        # Show results
         show_results_section(result)
         
     except Exception as e:
@@ -1361,6 +1412,17 @@ def main():
     if not user_id:
         # User is not authenticated, login page is shown
         return
+    
+    # Initialize session state for export tracking if it doesn't exist
+    if 'export_format_clicked' not in st.session_state:
+        st.session_state.export_format_clicked = None
+    
+    # Log the current session state for debugging
+    logger.info(f"Session state keys: {list(st.session_state.keys())}")
+    if 'export_format_clicked' in st.session_state:
+        logger.info(f"Export format clicked: {st.session_state.export_format_clicked}")
+    if 'cv_result' in st.session_state:
+        logger.info("CV result is in session state")
     
     # Check for demo mode
     demo_mode = st.session_state.get('demo_mode', False)
