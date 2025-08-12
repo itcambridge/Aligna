@@ -493,7 +493,26 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str) -> 
         if output_format in ["docx", "pdf"]:
             # Binary content
             logger.info(f"Reading binary content from {output_file}")
+            with open(output_file, "rb") as f:
+                content = f.read()
+        else:
+            # Text content
+            logger.info(f"Reading text content from {output_file}")
+            with open(output_file, "r", encoding="utf-8") as f:
+                content = f.read()
+        
         logger.info(f"CV data keys: {list(cv_data.keys())}")
+        
+        # Return the export result
+        return {
+            "status": "success",
+            "content": content,
+            "mime_type": mime_type,
+            "file_path": output_file
+        }
+        
+    except Exception as e:
+        logger.error(f"Error exporting CV: {str(e)}")
         
         # Fallback to text format if export fails
         if output_format in ["docx", "pdf"]:
@@ -508,6 +527,22 @@ def export_cv(cv_data: Dict[str, Any], template_id: str, output_format: str) -> 
             st.session_state.export_mime = "text/plain"
             st.session_state.export_format = "text (fallback)"
             logger.info(f"Session state updated with fallback: format=text (fallback)")
+            
+            return {
+                "status": "success",
+                "content": content,
+                "mime_type": "text/plain",
+                "file_path": None
+            }
+        else:
+            # For other formats, just return the error
+            return {
+                "status": "error",
+                "error": str(e),
+                "content": None,
+                "mime_type": None,
+                "file_path": None
+            }
 
 def create_text_cv(cv_data: Dict[str, Any]) -> str:
     """
