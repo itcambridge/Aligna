@@ -495,10 +495,28 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
     add_interactive_evidence_css()
     add_interactive_evidence_js()
     
+    # Debug: Log the structure of cv_data
+    st.write("Debug: CV Data Keys", list(cv_data.keys()))
+    
     # Check if we have the generated CV data
     if "generated_cv" in cv_data:
         # Use the generated CV structure
         generated_cv = cv_data.get("generated_cv", {})
+        
+        # Debug: Log the structure of generated_cv
+        st.write("Debug: Generated CV Keys", list(generated_cv.keys()))
+        
+        # If sections exist, debug their structure
+        if "sections" in generated_cv:
+            sections = generated_cv.get("sections", [])
+            st.write(f"Debug: Number of sections: {len(sections)}")
+            if len(sections) > 0:
+                st.write(f"Debug: First section keys: {list(sections[0].keys())}")
+                st.write(f"Debug: First section title: {sections[0].get('title', 'No title')}")
+                bullets = sections[0].get("bullets", [])
+                st.write(f"Debug: First section bullet count: {len(bullets)}")
+                if len(bullets) > 0:
+                    st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
         
         # Contact information
         contact_info = generated_cv.get("contact_info", {})
@@ -612,6 +630,41 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
         if education and education.get("content"):
             st.markdown("### Education")
             st.markdown(education.get("content", ""))
+    
+    # If no sections were rendered but we have matches, create sections from matches
+    if "matches" in cv_data and not "generated_cv" in cv_data:
+        # Get all matches
+        matches = cv_data.get("matches", [])
+        st.write(f"Debug: Creating sections from {len(matches)} matches")
+        
+        # Group matches by category
+        matches_by_category = {}
+        for match in matches:
+            category = match.get("category", "Experience")
+            if category not in matches_by_category:
+                matches_by_category[category] = []
+            matches_by_category[category].append(match)
+        
+        # Create a section for each category
+        for category, category_matches in matches_by_category.items():
+            # Skip if no matches
+            if not category_matches:
+                continue
+                
+            # Create bullets for this category
+            bullets = []
+            for match in category_matches:
+                bullet = {
+                    "text": match.get("text", ""),
+                    "citations": [match],
+                    "confidence": match.get("score", 0.5),
+                    "risk_flags": []
+                }
+                bullets.append(bullet)
+            
+            # Render the section
+            section_title = category.replace("_", " ").title()
+            render_interactive_cv_section(section_title, bullets)
     
     # Evidence summary
     st.markdown("### Evidence Summary")
