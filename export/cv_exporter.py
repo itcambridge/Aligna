@@ -472,21 +472,25 @@ class CVExporter:
             style.font.name = 'Calibri'
             style.font.size = Pt(11)
             
+            # Clear the document and start fresh
+            for paragraph in doc.paragraphs:
+                p = paragraph._element
+                p.getparent().remove(p)
+                p._p = p._element = None
+            
+            # Add title
+            title_paragraph = doc.add_paragraph()
+            title_run = title_paragraph.add_run("PROFESSIONAL CV")
+            title_run.font.size = Pt(18)
+            title_run.font.bold = True
+            title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
             # Add contact information
             if "contact" in cv_content:
                 contact_lines = cv_content["contact"].split("\n")
-                # Name in larger font
-                if contact_lines:
-                    name_paragraph = doc.add_paragraph()
-                    name_run = name_paragraph.add_run(contact_lines[0])
-                    name_run.font.size = Pt(16)
-                    name_run.font.bold = True
-                
-                # Contact details
-                if len(contact_lines) > 1:
-                    contact_paragraph = doc.add_paragraph()
-                    contact_run = contact_paragraph.add_run(" | ".join(contact_lines[1:]))
-                    contact_run.font.size = Pt(10)
+                for line in contact_lines:
+                    if line.strip():
+                        doc.add_paragraph(line.strip())
             
             # Add summary
             if "summary" in cv_content and cv_content["summary"]:
@@ -509,18 +513,13 @@ class CVExporter:
             if "skills" in cv_content and cv_content["skills"]:
                 doc.add_heading('SKILLS', level=1)
                 
-                # Check if skills are in bullet format or comma-separated
-                if "•" in cv_content["skills"] or "-" in cv_content["skills"]:
-                    # Bullet format
-                    skills_bullets = cv_content["skills"].split("\n")
-                    for bullet in skills_bullets:
-                        if bullet.strip():
-                            p = doc.add_paragraph()
-                            p.add_run(bullet.strip())
-                            p.style = 'List Bullet'
-                else:
-                    # Comma-separated format
-                    doc.add_paragraph(cv_content["skills"])
+                # Split skills into bullet points
+                skills_bullets = cv_content["skills"].split("\n")
+                for bullet in skills_bullets:
+                    if bullet.strip():
+                        p = doc.add_paragraph()
+                        p.add_run(bullet.strip())
+                        p.style = 'List Bullet'
             
             # Add education
             if "education" in cv_content and cv_content["education"]:
@@ -533,15 +532,6 @@ class CVExporter:
                         p = doc.add_paragraph()
                         p.add_run(bullet.strip())
                         p.style = 'List Bullet'
-            
-            # Add footnotes if available
-            if "footnotes" in cv_content and cv_content["footnotes"]:
-                doc.add_page_break()
-                doc.add_heading('EVIDENCE & CITATIONS', level=1)
-                doc.add_paragraph(cv_content["footnotes"])
-            
-            # Add a simple paragraph to ensure the document is not empty
-            doc.add_paragraph("CV Content:")
             
             # Save the document
             if output_path:
