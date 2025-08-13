@@ -118,7 +118,11 @@ class CVExporter:
         
         # Add the raw CV text if available
         if "cv_text" in cv_data:
-            content["cv_text"] = cv_data["cv_text"]
+            # Remove the "| |" placeholder if present
+            cv_text = cv_data["cv_text"]
+            if cv_text.endswith("| |"):
+                cv_text = cv_text[:-4].strip()
+            content["cv_text"] = cv_text
         
         # Process each section in the template
         for section in template["sections"]:
@@ -348,21 +352,32 @@ class CVExporter:
         """Extract all citations from CV data."""
         citations = []
         
-        # In a real implementation, we would extract citations from the CV data
-        # For now, we'll create some placeholder citations
+        # Check for match_evidence or matches directly in cv_data
         match_evidence = cv_data.get("match_evidence", {})
-        matches = match_evidence.get("matches", [])
         
+        # Try to get matches from different possible locations in the data structure
+        matches = []
+        if isinstance(match_evidence, dict):
+            matches = match_evidence.get("matches", [])
+        elif isinstance(match_evidence, list):
+            matches = match_evidence
+        
+        # If we have direct matches in cv_data, use those
+        if not matches and "matches" in cv_data and isinstance(cv_data["matches"], list):
+            matches = cv_data["matches"]
+        
+        # Process the matches
         if isinstance(matches, list):
             for match in matches:
-                citation = {
-                    "cv_id": match.get("cv_id", "Unknown"),
-                    "section": match.get("section", "Unknown"),
-                    "snippet": match.get("text", ""),
-                    "score": match.get("score", 0.0),
-                    "date": datetime.now().strftime("%Y-%m-%d")
-                }
-                citations.append(citation)
+                if isinstance(match, dict):
+                    citation = {
+                        "cv_id": match.get("cv_id", "Unknown"),
+                        "section": match.get("section", "Unknown"),
+                        "snippet": match.get("text", ""),
+                        "score": match.get("score", 0.0),
+                        "date": datetime.now().strftime("%Y-%m-%d")
+                    }
+                    citations.append(citation)
         
         return citations
     
@@ -489,57 +504,152 @@ class CVExporter:
             title_run.font.bold = True
             title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             
-            # Add a paragraph with the CV text if available
-            if "cv_text" in cv_content:
-                doc.add_paragraph(cv_content["cv_text"])
-            
-            # Add contact information
+            # Add contact information section with better formatting
             if "contact" in cv_content:
+                contact_section = doc.add_heading('CONTACT INFORMATION', level=1)
+                contact_section.style.font.size = Pt(14)
+                contact_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
+                
                 contact_lines = cv_content["contact"].split("\n")
                 for line in contact_lines:
                     if line.strip():
-                        doc.add_paragraph(line.strip())
+                        if ":" in line:  # Make labels bold
+                            parts = line.split(":", 1)
+                            contact_para = doc.add_paragraph()
+                            label_run = contact_para.add_run(parts[0] + ":")
+                            label_run.bold = True
+                            if len(parts) > 1 and parts[1].strip():
+                                contact_para.add_run(" " + parts[1].strip())
+                        else:
+                            contact_para = doc.add_paragraph()
+                            contact_para.add_run(line.strip())
             
-            # Add summary
+            # Add summary section with better formatting
             if "summary" in cv_content and cv_content["summary"]:
-                doc.add_heading('PROFESSIONAL SUMMARY', level=1)
-                doc.add_paragraph(cv_content["summary"])
+                summary_section = doc.add_heading('PROFESSIONAL SUMMARY', level=1)
+                summary_section.style.font.size = Pt(14)
+                summary_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
+                
+                summary_para = doc.add_paragraph()
+                summary_para.add_run(cv_content["summary"])
             
-            # Add experience
+            # Add impact highlights if available
+            if "impact_highlights" in cv_content and cv_content["impact_highlights"]:
+                impact_section = doc.add_heading('KEY ACHIEVEMENTS', level=1)
+                impact_section.style.font.size = Pt(14)
+                impact_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
+                
+                # Split impact highlights into bullet points
+                impact_bullets = cv_content["impact_highlights"].split("\n")
+                for bullet in impact_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("→") or clean_bullet.startswith("-") or clean_bullet.startswith("•"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        p = doc.add_paragraph(style='List Bullet')
+                        p.add_run(clean_bullet)
+            
+            # Add experience section with better formatting
             if "experience" in cv_content and cv_content["experience"]:
-                doc.add_heading('WORK EXPERIENCE', level=1)
+                exp_section = doc.add_heading('WORK EXPERIENCE', level=1)
+                exp_section.style.font.size = Pt(14)
+                exp_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
                 
                 # Split experience into bullet points
                 experience_bullets = cv_content["experience"].split("\n")
                 for bullet in experience_bullets:
                     if bullet.strip():
-                        p = doc.add_paragraph()
-                        p.add_run(bullet.strip())
-                        p.style = 'List Bullet'
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        p = doc.add_paragraph(style='List Bullet')
+                        p.add_run(clean_bullet)
             
-            # Add skills
+            # Add skills section with better formatting
             if "skills" in cv_content and cv_content["skills"]:
-                doc.add_heading('SKILLS', level=1)
+                skills_section = doc.add_heading('SKILLS', level=1)
+                skills_section.style.font.size = Pt(14)
+                skills_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
                 
                 # Split skills into bullet points
                 skills_bullets = cv_content["skills"].split("\n")
                 for bullet in skills_bullets:
                     if bullet.strip():
-                        p = doc.add_paragraph()
-                        p.add_run(bullet.strip())
-                        p.style = 'List Bullet'
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        p = doc.add_paragraph(style='List Bullet')
+                        p.add_run(clean_bullet)
             
-            # Add education
+            # Add education section with better formatting
             if "education" in cv_content and cv_content["education"]:
-                doc.add_heading('EDUCATION', level=1)
+                edu_section = doc.add_heading('EDUCATION', level=1)
+                edu_section.style.font.size = Pt(14)
+                edu_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
                 
                 # Split education into bullet points
                 education_bullets = cv_content["education"].split("\n")
                 for bullet in education_bullets:
                     if bullet.strip():
-                        p = doc.add_paragraph()
-                        p.add_run(bullet.strip())
-                        p.style = 'List Bullet'
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        p = doc.add_paragraph(style='List Bullet')
+                        p.add_run(clean_bullet)
+            
+            # Add footnotes/evidence section if available
+            if "footnotes" in cv_content and cv_content["footnotes"]:
+                footnotes_section = doc.add_heading('EVIDENCE & CITATIONS', level=1)
+                footnotes_section.style.font.size = Pt(14)
+                footnotes_section.style.font.bold = True
+                
+                # Add a horizontal line under the heading
+                doc.add_paragraph('=' * 50)
+                
+                # Split footnotes into individual entries
+                footnote_entries = cv_content["footnotes"].split("\n")
+                for entry in footnote_entries:
+                    if entry.strip():
+                        footnote_para = doc.add_paragraph()
+                        footnote_para.add_run(entry.strip())
+            
+            # Add a paragraph with the CV text if available and not already included
+            # This is a fallback to ensure all content is included
+            if "cv_text" in cv_content and not any(section in cv_content for section in 
+                                                ["summary", "experience", "skills", "education"]):
+                # Process the cv_text to remove the "| |" placeholder if present
+                cv_text = cv_content["cv_text"]
+                if cv_text.endswith("| |"):
+                    cv_text = cv_text[:-4].strip()
+                
+                # Add the processed CV text
+                doc.add_paragraph(cv_text)
             
             # Save the document
             if output_path:
@@ -622,170 +732,3 @@ class CVExporter:
                     firstLineIndent=-15,
                     spaceAfter=6
                 )
-            }
-            
-            # Add custom styles to the stylesheet
-            for style_name, style in custom_styles.items():
-                if style_name not in styles:
-                    styles.add(style)
-            
-            # Build the document content
-            content = []
-            
-            # Add contact information
-            if "contact" in cv_content:
-                contact_lines = cv_content["contact"].split("\n")
-                # Name in larger font
-                if contact_lines:
-                    name_style = ParagraphStyle(
-                        name='Name',
-                        parent=styles['Normal'],
-                        fontSize=16,
-                        alignment=1,  # Center
-                        spaceAfter=6
-                    )
-                    content.append(Paragraph(contact_lines[0], name_style))
-                
-                # Contact details
-                if len(contact_lines) > 1:
-                    contact_style = ParagraphStyle(
-                        name='Contact',
-                        parent=styles['Normal'],
-                        fontSize=10,
-                        alignment=1,  # Center
-                        spaceAfter=12
-                    )
-                    content.append(Paragraph(" | ".join(contact_lines[1:]), contact_style))
-            
-            # Add summary
-            if "summary" in cv_content and cv_content["summary"]:
-                content.append(Paragraph("PROFESSIONAL SUMMARY", styles["CustomHeading1"]))
-                content.append(Paragraph(cv_content["summary"], styles["CustomNormal"]))
-                content.append(Spacer(1, 12))
-            
-            # Add experience
-            if "experience" in cv_content and cv_content["experience"]:
-                content.append(Paragraph("WORK EXPERIENCE", styles["CustomHeading1"]))
-                
-                # Split experience into bullet points
-                experience_bullets = cv_content["experience"].split("\n")
-                for bullet in experience_bullets:
-                    if bullet.strip():
-                        # Clean up bullet markers
-                        clean_bullet = bullet.strip()
-                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
-                            clean_bullet = clean_bullet[1:].strip()
-                        content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
-                
-                content.append(Spacer(1, 12))
-            
-            # Add skills
-            if "skills" in cv_content and cv_content["skills"]:
-                content.append(Paragraph("SKILLS", styles["CustomHeading1"]))
-                
-                # Check if skills are in bullet format or comma-separated
-                if "•" in cv_content["skills"] or "-" in cv_content["skills"]:
-                    # Bullet format
-                    skills_bullets = cv_content["skills"].split("\n")
-                    for bullet in skills_bullets:
-                        if bullet.strip():
-                            # Clean up bullet markers
-                            clean_bullet = bullet.strip()
-                            if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
-                                clean_bullet = clean_bullet[1:].strip()
-                            content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
-                else:
-                    # Comma-separated format
-                    content.append(Paragraph(cv_content["skills"], styles["CustomNormal"]))
-                
-                content.append(Spacer(1, 12))
-            
-            # Add education
-            if "education" in cv_content and cv_content["education"]:
-                content.append(Paragraph("EDUCATION", styles["CustomHeading1"]))
-                
-                # Split education into bullet points
-                education_bullets = cv_content["education"].split("\n")
-                for bullet in education_bullets:
-                    if bullet.strip():
-                        # Clean up bullet markers
-                        clean_bullet = bullet.strip()
-                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
-                            clean_bullet = clean_bullet[1:].strip()
-                        content.append(Paragraph(f"• {clean_bullet}", styles["CustomBullet"]))
-                
-                content.append(Spacer(1, 12))
-            
-            # Add footnotes if available
-            if "footnotes" in cv_content and cv_content["footnotes"]:
-                content.append(Paragraph("EVIDENCE & CITATIONS", styles["CustomHeading1"]))
-                
-                # Split footnotes into individual entries
-                footnote_entries = cv_content["footnotes"].split("\n")
-                for entry in footnote_entries:
-                    if entry.strip():
-                        content.append(Paragraph(entry.strip(), styles["CustomNormal"]))
-            
-            # Build the PDF
-            doc.build(content)
-            
-            # Get the PDF content if using buffer
-            if not output_path:
-                pdf_content = buffer.getvalue()
-                buffer.close()
-                
-                # Save to the exports directory
-                exports_dir = os.path.join(os.getcwd(), "exports")
-                os.makedirs(exports_dir, exist_ok=True)
-                template_name = template.get("id", "default")
-                output_path = os.path.join(exports_dir, f"cv_{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
-                with open(output_path, 'wb') as f:
-                    f.write(pdf_content)
-            else:
-                # Read the file content for return
-                with open(output_path, 'rb') as f:
-                    pdf_content = f.read()
-            
-            return {
-                "status": "success",
-                "format": "pdf",
-                "content": pdf_content,
-                "file_path": output_path
-            }
-        
-        except Exception as e:
-            logger.error(f"Error creating PDF: {e}")
-            return {
-                "status": "error",
-                "format": "pdf",
-                "error": str(e),
-                "file_path": None
-            }
-    
-    def _export_json(self, cv_data: Dict[str, Any], output_path: Optional[str] = None) -> Dict[str, Any]:
-        """Export CV as JSON."""
-        # Save to file if output path provided
-        if output_path:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, 'w') as f:
-                json.dump(cv_data, f, indent=2)
-        
-        return {
-            "status": "success",
-            "format": "json",
-            "content": cv_data,
-            "file_path": output_path
-        }
-    
-    def get_available_templates(self) -> List[Dict[str, Any]]:
-        """Get list of available templates."""
-        templates_info = []
-        
-        for template_id, template_data in self.templates.items():
-            templates_info.append({
-                "id": template_id,
-                "name": template_data.get("name", template_id),
-                "description": template_data.get("description", "")
-            })
-        
-        return templates_info
