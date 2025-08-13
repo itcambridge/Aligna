@@ -116,6 +116,10 @@ class CVExporter:
         """Generate CV content based on template."""
         content = {}
         
+        # Add the raw CV text if available
+        if "cv_text" in cv_data:
+            content["cv_text"] = cv_data["cv_text"]
+        
         # Process each section in the template
         for section in template["sections"]:
             section_id = section["id"]
@@ -478,12 +482,16 @@ class CVExporter:
                 p.getparent().remove(p)
                 p._p = p._element = None
             
-            # Add title
+            # Add title with proper formatting
             title_paragraph = doc.add_paragraph()
             title_run = title_paragraph.add_run("PROFESSIONAL CV")
             title_run.font.size = Pt(18)
             title_run.font.bold = True
             title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add a paragraph with the CV text if available
+            if "cv_text" in cv_content:
+                doc.add_paragraph(cv_content["cv_text"])
             
             # Add contact information
             if "contact" in cv_content:

@@ -517,20 +517,46 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
         summary = generated_cv.get("summary", {})
         st.write("Debug: Summary:", summary)
         
-        # If sections exist, debug their structure
+        # Check for individual section objects (experience, skills, education)
+        # This is the structure from CVWriter.generate_cv
+        experience = generated_cv.get("experience", {})
+        skills = generated_cv.get("skills", {})
+        education = generated_cv.get("education", {})
+        additional_sections = generated_cv.get("additional_sections", [])
+        
+        st.write("Debug: Experience section:", experience.get("title", "No title") if experience else "No experience section")
+        st.write("Debug: Skills section:", skills.get("title", "No title") if skills else "No skills section")
+        st.write("Debug: Education section:", education.get("title", "No title") if education else "No education section")
+        st.write("Debug: Additional sections count:", len(additional_sections))
+        
+        # Create a sections array from the individual section objects
+        sections = []
+        if experience:
+            sections.append(experience)
+        if skills:
+            sections.append(skills)
+        if education:
+            sections.append(education)
+        sections.extend(additional_sections)
+        
+        st.write(f"Debug: Created {len(sections)} sections from individual section objects")
+        
+        # If sections exist in the original structure, use that instead
         if "sections" in generated_cv:
-            sections = generated_cv.get("sections", [])
-            st.write(f"Debug: Number of sections: {len(sections)}")
-            if len(sections) > 0:
-                st.write(f"Debug: First section keys: {list(sections[0].keys())}")
-                st.write(f"Debug: First section title: {sections[0].get('title', 'No title')}")
-                bullets = sections[0].get("bullets", [])
-                st.write(f"Debug: First section bullet count: {len(bullets)}")
-                if len(bullets) > 0:
-                    st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
-                    st.write(f"Debug: First bullet text: {bullets[0].get('text', 'No text')}")
-        else:
-            st.write("Debug: No sections found in generated_cv")
+            original_sections = generated_cv.get("sections", [])
+            st.write(f"Debug: Found {len(original_sections)} sections in original structure")
+            if original_sections:
+                sections = original_sections
+                st.write("Debug: Using original sections")
+                
+                if len(sections) > 0:
+                    st.write(f"Debug: First section keys: {list(sections[0].keys())}")
+                    st.write(f"Debug: First section title: {sections[0].get('title', 'No title')}")
+                    bullets = sections[0].get("bullets", [])
+                    st.write(f"Debug: First section bullet count: {len(bullets)}")
+                    if len(bullets) > 0:
+                        st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
+                        st.write(f"Debug: First bullet text: {bullets[0].get('text', 'No text')}")
         
         # Contact information
         contact_info = generated_cv.get("contact_info", {})
@@ -549,8 +575,129 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
             st.markdown("### Professional Summary")
             st.markdown(summary.get("content", ""))
         
-        # Experience section with interactive bullets
-        sections = generated_cv.get("sections", [])
+        # Create a sections array from the individual section objects if not already present
+        sections = []
+        if "sections" in generated_cv:
+            sections = generated_cv.get("sections", [])
+        else:
+            # Add experience section
+            experience = generated_cv.get("experience", {})
+            if experience and experience.get("content"):
+                # Create bullets from content
+                experience_content = experience.get("content", "")
+                bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+                experience_texts = re.findall(bullet_pattern, experience_content, re.DOTALL)
+                
+                # If no bullets found, treat the whole content as one bullet
+                if not experience_texts and experience_content.strip():
+                    experience_texts = [experience_content.strip()]
+                
+                # Create bullets
+                bullets = []
+                for text in experience_texts:
+                    bullet = {
+                        "text": text.strip(),
+                        "citations": [],
+                        "confidence": 0.7,
+                        "risk_flags": []
+                    }
+                    bullets.append(bullet)
+                
+                # Add to sections
+                sections.append({
+                    "title": experience.get("title", "Work Experience"),
+                    "bullets": bullets
+                })
+            
+            # Add skills section
+            skills = generated_cv.get("skills", {})
+            if skills and skills.get("content"):
+                # Create bullets from content
+                skills_content = skills.get("content", "")
+                bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+                skills_texts = re.findall(bullet_pattern, skills_content, re.DOTALL)
+                
+                # If no bullets found, treat the whole content as one bullet
+                if not skills_texts and skills_content.strip():
+                    skills_texts = [skills_content.strip()]
+                
+                # Create bullets
+                bullets = []
+                for text in skills_texts:
+                    bullet = {
+                        "text": text.strip(),
+                        "citations": [],
+                        "confidence": 0.7,
+                        "risk_flags": []
+                    }
+                    bullets.append(bullet)
+                
+                # Add to sections
+                sections.append({
+                    "title": skills.get("title", "Skills"),
+                    "bullets": bullets
+                })
+            
+            # Add education section
+            education = generated_cv.get("education", {})
+            if education and education.get("content"):
+                # Create bullets from content
+                education_content = education.get("content", "")
+                bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+                education_texts = re.findall(bullet_pattern, education_content, re.DOTALL)
+                
+                # If no bullets found, treat the whole content as one bullet
+                if not education_texts and education_content.strip():
+                    education_texts = [education_content.strip()]
+                
+                # Create bullets
+                bullets = []
+                for text in education_texts:
+                    bullet = {
+                        "text": text.strip(),
+                        "citations": [],
+                        "confidence": 0.7,
+                        "risk_flags": []
+                    }
+                    bullets.append(bullet)
+                
+                # Add to sections
+                sections.append({
+                    "title": education.get("title", "Education"),
+                    "bullets": bullets
+                })
+            
+            # Add additional sections
+            additional_sections = generated_cv.get("additional_sections", [])
+            for section in additional_sections:
+                if section and section.get("content"):
+                    # Create bullets from content
+                    section_content = section.get("content", "")
+                    bullet_pattern = r'•\s*(.*?)(?=\n•|\n\n|$)'
+                    section_texts = re.findall(bullet_pattern, section_content, re.DOTALL)
+                    
+                    # If no bullets found, treat the whole content as one bullet
+                    if not section_texts and section_content.strip():
+                        section_texts = [section_content.strip()]
+                    
+                    # Create bullets
+                    bullets = []
+                    for text in section_texts:
+                        bullet = {
+                            "text": text.strip(),
+                            "citations": [],
+                            "confidence": 0.7,
+                            "risk_flags": []
+                        }
+                        bullets.append(bullet)
+                    
+                    # Add to sections
+                    sections.append({
+                        "title": section.get("title", "Additional Section"),
+                        "bullets": bullets
+                    })
+        
+        # Render each section
         for section in sections:
             section_title = section.get("title", "")
             bullets = section.get("bullets", [])
