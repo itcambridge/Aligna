@@ -710,7 +710,7 @@ class CVExporter:
             # Create styles
             styles = getSampleStyleSheet()
             
-            # Define custom styles, checking if they already exist
+            # Define custom styles
             custom_styles = {
                 'CustomHeading1': ParagraphStyle(
                     name='CustomHeading1',
@@ -732,3 +732,197 @@ class CVExporter:
                     firstLineIndent=-15,
                     spaceAfter=6
                 )
+            }
+            
+            # Create content elements
+            elements = []
+            
+            # Add title
+            title = Paragraph("PROFESSIONAL CV", styles['Title'])
+            elements.append(title)
+            elements.append(Spacer(1, 0.25 * inch))
+            
+            # Add contact information
+            if "contact" in cv_content:
+                elements.append(Paragraph("CONTACT INFORMATION", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                contact_lines = cv_content["contact"].split("\n")
+                for line in contact_lines:
+                    if line.strip():
+                        elements.append(Paragraph(line.strip(), custom_styles['CustomNormal']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add summary
+            if "summary" in cv_content and cv_content["summary"]:
+                elements.append(Paragraph("PROFESSIONAL SUMMARY", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                summary_text = cv_content["summary"]
+                elements.append(Paragraph(summary_text, custom_styles['CustomNormal']))
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add impact highlights
+            if "impact_highlights" in cv_content and cv_content["impact_highlights"]:
+                elements.append(Paragraph("KEY ACHIEVEMENTS", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                impact_bullets = cv_content["impact_highlights"].split("\n")
+                for bullet in impact_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("→") or clean_bullet.startswith("-") or clean_bullet.startswith("•"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        elements.append(Paragraph("• " + clean_bullet, custom_styles['CustomBullet']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add experience
+            if "experience" in cv_content and cv_content["experience"]:
+                elements.append(Paragraph("WORK EXPERIENCE", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                experience_bullets = cv_content["experience"].split("\n")
+                for bullet in experience_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        elements.append(Paragraph("• " + clean_bullet, custom_styles['CustomBullet']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add skills
+            if "skills" in cv_content and cv_content["skills"]:
+                elements.append(Paragraph("SKILLS", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                skills_bullets = cv_content["skills"].split("\n")
+                for bullet in skills_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        elements.append(Paragraph("• " + clean_bullet, custom_styles['CustomBullet']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add education
+            if "education" in cv_content and cv_content["education"]:
+                elements.append(Paragraph("EDUCATION", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                education_bullets = cv_content["education"].split("\n")
+                for bullet in education_bullets:
+                    if bullet.strip():
+                        # Clean up bullet markers
+                        clean_bullet = bullet.strip()
+                        if clean_bullet.startswith("•") or clean_bullet.startswith("-"):
+                            clean_bullet = clean_bullet[1:].strip()
+                        
+                        elements.append(Paragraph("• " + clean_bullet, custom_styles['CustomBullet']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add footnotes
+            if "footnotes" in cv_content and cv_content["footnotes"]:
+                elements.append(Paragraph("EVIDENCE & CITATIONS", custom_styles['CustomHeading1']))
+                elements.append(Spacer(1, 0.1 * inch))
+                
+                footnote_entries = cv_content["footnotes"].split("\n")
+                for entry in footnote_entries:
+                    if entry.strip():
+                        elements.append(Paragraph(entry.strip(), custom_styles['CustomNormal']))
+                
+                elements.append(Spacer(1, 0.2 * inch))
+            
+            # Add raw CV text if available and not already included
+            if "cv_text" in cv_content and not any(section in cv_content for section in 
+                                                ["summary", "experience", "skills", "education"]):
+                # Process the cv_text to remove the "| |" placeholder if present
+                cv_text = cv_content["cv_text"]
+                if cv_text.endswith("| |"):
+                    cv_text = cv_text[:-4].strip()
+                
+                # Add the processed CV text
+                elements.append(Paragraph(cv_text, custom_styles['CustomNormal']))
+            
+            # Build the PDF
+            doc.build(elements)
+            
+            # If using a buffer, get the PDF content
+            if not output_path:
+                pdf_content = buffer.getvalue()
+                buffer.close()
+                
+                # Save to a temporary file for return
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+                    temp_file.write(pdf_content)
+                    output_path = temp_file.name
+            else:
+                # Read the file content for return
+                with open(output_path, 'rb') as f:
+                    pdf_content = f.read()
+            
+            # Log success
+            logger.info(f"Successfully created PDF file at {output_path}")
+            
+            return {
+                "status": "success",
+                "format": "pdf",
+                "content": pdf_content,
+                "file_path": output_path
+            }
+        
+        except Exception as e:
+            logger.error(f"Error creating PDF: {e}")
+            return {
+                "status": "error",
+                "format": "pdf",
+                "error": str(e),
+                "file_path": None
+            }
+    
+    def _export_json(self, cv_data: Dict[str, Any], output_path: Optional[str] = None) -> Dict[str, Any]:
+        """Export CV as JSON."""
+        try:
+            # Process the cv_text to remove the "| |" placeholder if present
+            if "cv_text" in cv_data:
+                cv_text = cv_data["cv_text"]
+                if cv_text.endswith("| |"):
+                    cv_data["cv_text"] = cv_text[:-4].strip()
+            
+            # Convert to JSON
+            json_content = json.dumps(cv_data, indent=2)
+            
+            # Save to file if output path provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                with open(output_path, 'w') as f:
+                    f.write(json_content)
+            
+            # Log success
+            logger.info(f"Successfully created JSON file at {output_path}")
+            
+            return {
+                "status": "success",
+                "format": "json",
+                "content": json_content,
+                "file_path": output_path
+            }
+        
+        except Exception as e:
+            logger.error(f"Error creating JSON: {e}")
+            return {
+                "status": "error",
+                "format": "json",
+                "error": str(e),
+                "file_path": None
+            }
