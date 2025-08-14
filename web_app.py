@@ -1204,27 +1204,36 @@ def show_results_section(result: dict):
     if evidence_validation:
         show_evidence_validation_section(evidence_validation)
     
-    # Interactive CV with Evidence
-    st.header("📄 Generated CV with Interactive Evidence")
-    st.markdown("""
-    <div style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius: 24px; 
-         padding: 32px; margin: 32px 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
-    """, unsafe_allow_html=True)
+    # Note about CV viewing
+    st.info("📄 Your CV has been generated successfully. Please use the export options below to download and view your CV in your preferred format.")
     
-    # Use the new interactive CV renderer with debug mode disabled
-    render_cv_with_evidence(result, debug_mode=False)
+    # Hidden CV section (commented out)
+    # st.header("📄 Generated CV with Interactive Evidence")
+    # st.markdown("""
+    # <div style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius: 24px; 
+    #      padding: 32px; margin: 32px 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
+    # """, unsafe_allow_html=True)
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    # # Use the new interactive CV renderer with debug mode disabled
+    # render_cv_with_evidence(result, debug_mode=False)
     
-    # Source attribution
-    st.markdown("### 📊 Experience Sources")
+    # st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Source attribution (simplified)
+    st.markdown("### 📊 Experience Sources Summary")
+    st.markdown("Your CV was generated using the following experience sources:")
+    
+    # Create a simple table of sources
+    source_data = []
     for cv_id, attribution in result['source_attribution'].items():
-        with st.expander(f"📄 {attribution['cv_name']} - {attribution['matches_contributed']} contributions"):
-            st.write(f"**Sections used:** {', '.join(attribution['sections_used'])}")
-            st.write(f"**Average relevance:** {attribution['avg_relevance_score']:.2f}")
-            st.write("**Sample contributions:**")
-            for contrib in attribution['sample_contributions']:
-                st.write(f"- {contrib['text']} (Score: {contrib['score']:.2f})")
+        source_data.append({
+            "Source": attribution['cv_name'],
+            "Contributions": attribution['matches_contributed'],
+            "Average Relevance": f"{attribution['avg_relevance_score']:.2f}"
+        })
+    
+    if source_data:
+        st.table(source_data)
     
     # Enhanced Export Section
     create_export_section(result, evidence_validation)
