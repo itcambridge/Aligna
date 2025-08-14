@@ -474,15 +474,16 @@ def render_interactive_cv_section(
         )
         panels_html += panel_html
     
-    # Render bullets and panels
-    st.markdown(f"""
+    # Render bullets and panels - wrap in a container to ensure proper rendering
+    section_html = f"""
     <div class="interactive-section" id="{section_id}">
         <div class="interactive-bullets">
             {bullets_html}
         </div>
         {panels_html}
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(section_html, unsafe_allow_html=True)
 
 def render_cv_with_evidence(cv_data: Dict[str, Any], debug_mode: bool = False):
     """
