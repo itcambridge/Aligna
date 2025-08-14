@@ -59,6 +59,22 @@ class CVExporter:
             logger.error(f"Error loading templates: {e}")
             return {}
     
+    def get_available_templates(self) -> List[Dict[str, Any]]:
+        """
+        Get a list of available templates.
+        
+        Returns:
+            List of template dictionaries with id, name, and description
+        """
+        template_list = []
+        for template_id, template_data in self.templates.items():
+            template_list.append({
+                "id": template_id,
+                "name": template_data.get("name", template_id),
+                "description": template_data.get("description", "")
+            })
+        return template_list
+    
     def export_cv(
         self,
         cv_data: Dict[str, Any],
