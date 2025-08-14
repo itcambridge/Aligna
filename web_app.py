@@ -1211,8 +1211,8 @@ def show_results_section(result: dict):
          padding: 32px; margin: 32px 0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);">
     """, unsafe_allow_html=True)
     
-    # Use the new interactive CV renderer
-    render_cv_with_evidence(result)
+    # Use the new interactive CV renderer with debug mode disabled
+    render_cv_with_evidence(result, debug_mode=False)
     
     st.markdown("</div>", unsafe_allow_html=True)
     

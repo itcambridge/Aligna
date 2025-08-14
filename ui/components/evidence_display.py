@@ -484,38 +484,41 @@ def render_interactive_cv_section(
     </div>
     """, unsafe_allow_html=True)
 
-def render_cv_with_evidence(cv_data: Dict[str, Any]):
+def render_cv_with_evidence(cv_data: Dict[str, Any], debug_mode: bool = False):
     """
     Render a complete CV with interactive evidence components.
     
     Args:
         cv_data: CV data with sections and evidence
+        debug_mode: Whether to show debug information
     """
     # Add CSS and JavaScript for interactive components
     add_interactive_evidence_css()
     add_interactive_evidence_js()
     
     # Debug: Log the structure of cv_data
-    st.write("Debug: CV Data Keys", list(cv_data.keys()))
-    
-    # Debug: Log the CV text
-    st.write("Debug: CV Text (first 100 chars):", cv_data.get("cv_text", "")[:100] if cv_data.get("cv_text") else "No CV text")
+    if debug_mode:
+        st.write("Debug: CV Data Keys", list(cv_data.keys()))
+        
+        # Debug: Log the CV text
+        st.write("Debug: CV Text (first 100 chars):", cv_data.get("cv_text", "")[:100] if cv_data.get("cv_text") else "No CV text")
     
     # Check if we have the generated CV data
     if "generated_cv" in cv_data:
         # Use the generated CV structure
         generated_cv = cv_data.get("generated_cv", {})
         
-        # Debug: Log the structure of generated_cv
-        st.write("Debug: Generated CV Keys", list(generated_cv.keys()))
-        
-        # Debug: Log the contact info
-        contact_info = generated_cv.get("contact_info", {})
-        st.write("Debug: Contact Info:", contact_info)
-        
-        # Debug: Log the summary
-        summary = generated_cv.get("summary", {})
-        st.write("Debug: Summary:", summary)
+        if debug_mode:
+            # Debug: Log the structure of generated_cv
+            st.write("Debug: Generated CV Keys", list(generated_cv.keys()))
+            
+            # Debug: Log the contact info
+            contact_info = generated_cv.get("contact_info", {})
+            st.write("Debug: Contact Info:", contact_info)
+            
+            # Debug: Log the summary
+            summary = generated_cv.get("summary", {})
+            st.write("Debug: Summary:", summary)
         
         # Check for individual section objects (experience, skills, education)
         # This is the structure from CVWriter.generate_cv
@@ -524,10 +527,11 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
         education = generated_cv.get("education", {})
         additional_sections = generated_cv.get("additional_sections", [])
         
-        st.write("Debug: Experience section:", experience.get("title", "No title") if experience else "No experience section")
-        st.write("Debug: Skills section:", skills.get("title", "No title") if skills else "No skills section")
-        st.write("Debug: Education section:", education.get("title", "No title") if education else "No education section")
-        st.write("Debug: Additional sections count:", len(additional_sections))
+        if debug_mode:
+            st.write("Debug: Experience section:", experience.get("title", "No title") if experience else "No experience section")
+            st.write("Debug: Skills section:", skills.get("title", "No title") if skills else "No skills section")
+            st.write("Debug: Education section:", education.get("title", "No title") if education else "No education section")
+            st.write("Debug: Additional sections count:", len(additional_sections))
         
         # Create a sections array from the individual section objects
         sections = []
@@ -539,24 +543,27 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
             sections.append(education)
         sections.extend(additional_sections)
         
-        st.write(f"Debug: Created {len(sections)} sections from individual section objects")
+        if debug_mode:
+            st.write(f"Debug: Created {len(sections)} sections from individual section objects")
         
         # If sections exist in the original structure, use that instead
         if "sections" in generated_cv:
             original_sections = generated_cv.get("sections", [])
-            st.write(f"Debug: Found {len(original_sections)} sections in original structure")
+            if debug_mode:
+                st.write(f"Debug: Found {len(original_sections)} sections in original structure")
             if original_sections:
                 sections = original_sections
-                st.write("Debug: Using original sections")
-                
-                if len(sections) > 0:
-                    st.write(f"Debug: First section keys: {list(sections[0].keys())}")
-                    st.write(f"Debug: First section title: {sections[0].get('title', 'No title')}")
-                    bullets = sections[0].get("bullets", [])
-                    st.write(f"Debug: First section bullet count: {len(bullets)}")
-                    if len(bullets) > 0:
-                        st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
-                        st.write(f"Debug: First bullet text: {bullets[0].get('text', 'No text')}")
+                if debug_mode:
+                    st.write("Debug: Using original sections")
+                    
+                    if len(sections) > 0:
+                        st.write(f"Debug: First section keys: {list(sections[0].keys())}")
+                        st.write(f"Debug: First section title: {sections[0].get('title', 'No title')}")
+                        bullets = sections[0].get("bullets", [])
+                        st.write(f"Debug: First section bullet count: {len(bullets)}")
+                        if len(bullets) > 0:
+                            st.write(f"Debug: First bullet keys: {list(bullets[0].keys())}")
+                            st.write(f"Debug: First bullet text: {bullets[0].get('text', 'No text')}")
         
         # Contact information
         contact_info = generated_cv.get("contact_info", {})
@@ -794,16 +801,18 @@ def render_cv_with_evidence(cv_data: Dict[str, Any]):
     
     # If no sections were rendered but we have matches, create sections from matches
     if "matches" in cv_data:
-        st.write("Debug: Matches found, creating sections from matches")
+        if debug_mode:
+            st.write("Debug: Matches found, creating sections from matches")
         # Get all matches
         matches = cv_data.get("matches", [])
-        st.write(f"Debug: Creating sections from {len(matches)} matches")
-        
-        # Debug: Log the first few matches
-        if len(matches) > 0:
-            st.write(f"Debug: First match keys: {list(matches[0].keys())}")
-            st.write(f"Debug: First match text: {matches[0].get('text', 'No text')}")
-            st.write(f"Debug: First match category: {matches[0].get('category', 'No category')}")
+        if debug_mode:
+            st.write(f"Debug: Creating sections from {len(matches)} matches")
+            
+            # Debug: Log the first few matches
+            if len(matches) > 0:
+                st.write(f"Debug: First match keys: {list(matches[0].keys())}")
+                st.write(f"Debug: First match text: {matches[0].get('text', 'No text')}")
+                st.write(f"Debug: First match category: {matches[0].get('category', 'No category')}")
         
         # Group matches by category
         matches_by_category = {}
