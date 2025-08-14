@@ -581,7 +581,7 @@ def render_cv_with_evidence(cv_data: Dict[str, Any], debug_mode: bool = False):
         summary = generated_cv.get("summary", {})
         if summary and summary.get("content"):
             st.markdown("### Professional Summary")
-            st.markdown(summary.get("content", ""))
+            st.markdown(summary.get("content", ""), unsafe_allow_html=True)
         
         # Create a sections array from the individual section objects if not already present
         sections = []
@@ -792,13 +792,13 @@ def render_cv_with_evidence(cv_data: Dict[str, Any], debug_mode: bool = False):
         skills = cv_data.get("skills", {})
         if skills and skills.get("content"):
             st.markdown("### Skills")
-            st.markdown(skills.get("content", ""))
+            st.markdown(skills.get("content", ""), unsafe_allow_html=True)
         
         # Education section
         education = cv_data.get("education", {})
         if education and education.get("content"):
             st.markdown("### Education")
-            st.markdown(education.get("content", ""))
+            st.markdown(education.get("content", ""), unsafe_allow_html=True)
     
     # If no sections were rendered but we have matches, create sections from matches
     if "matches" in cv_data:
@@ -869,8 +869,8 @@ def render_cv_with_evidence(cv_data: Dict[str, Any], debug_mode: bool = False):
         for source, citations in citations_by_source.items():
             with st.expander(f"📄 {source} ({len(citations)} citations)"):
                 for i, citation in enumerate(citations):
-                    st.markdown(f"**{i+1}.** {citation.get('text', '')}")
-                    st.markdown(f"*Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}*")
+                    st.markdown(f"**{i+1}.** {citation.get('text', '')}", unsafe_allow_html=True)
+                    st.markdown(f"*Section: {citation.get('section', 'Unknown')} | Score: {citation.get('score', 0.0):.2f}*", unsafe_allow_html=True)
                     st.markdown("---")
     else:
         st.info("No evidence citations available for this CV.")
